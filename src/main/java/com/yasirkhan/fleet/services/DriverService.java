@@ -11,6 +11,8 @@ public interface DriverService {
 
     void addDriver(DriverDto driverDto);
 
+    void updateDriver(DriverDto driverDto);
+
     List<DriverDto> getAllDrivers();
 
     DriverDto getDriverById(UUID userId);
