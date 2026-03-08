@@ -1,6 +1,8 @@
 package com.yasirkhan.fleet.models.entities;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -18,7 +20,7 @@ import java.util.UUID;
 public class Driver {
 
     @Id
-    private UUID userID;
+    private UUID id;
 
     private String name;
 
@@ -38,5 +40,6 @@ public class Driver {
 
     private LocalDate licenseExpiry;
 
+    @Enumerated(EnumType.STRING)
     private Status status;
 }

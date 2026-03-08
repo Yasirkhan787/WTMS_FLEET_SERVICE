@@ -7,6 +7,10 @@ import com.yasirkhan.fleet.services.DriverService;
 import com.yasirkhan.fleet.services.EventConsumerService;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 @Service
 public class EventConsumerServiceImpl implements EventConsumerService {
 
@@ -22,9 +26,14 @@ public class EventConsumerServiceImpl implements EventConsumerService {
         driverService.addDriver(driverEventDto);
     }
 
-    // TODO: NEED TO BE UPDATE
     @Override
     public void consumeDriverStatusEvent(DriverStatusChangedEventDto driverStatusChangedEventDto) {
-        driverService.toggleDriverStatus(driverStatusChangedEventDto);
+
+        UUID id = driverStatusChangedEventDto.getId();
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", driverStatusChangedEventDto.getFleetStatus());
+
+        driverService.updateDriver(id, updates);
     }
 }

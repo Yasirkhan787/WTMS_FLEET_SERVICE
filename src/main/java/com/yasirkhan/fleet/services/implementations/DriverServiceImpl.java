@@ -5,6 +5,7 @@ import com.yasirkhan.fleet.models.dtos.DriverStatusChangedEventDto;
 import com.yasirkhan.fleet.models.entities.Driver;
 import com.yasirkhan.fleet.models.entities.Status;
 import com.yasirkhan.fleet.repositories.DriverRepository;
+import com.yasirkhan.fleet.responses.DriverResponse;
 import com.yasirkhan.fleet.services.DriverService;
 import com.yasirkhan.fleet.utils.EntityConversion;
 import com.yasirkhan.fleet.utils.ResponseConversion;
@@ -16,7 +17,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("SpellCheckingInspection")
 @Service
 public class DriverServiceImpl implements DriverService {
 
@@ -39,13 +39,13 @@ public class DriverServiceImpl implements DriverService {
     }
 
     @Override
-    public void updateDriver(UUID userID, Map<String, Object> updates) {
+    public void updateDriver(UUID id, Map<String, Object> updates) {
 
         Driver dbDriver =
-                driverRepository.findByUserId(userID)
+                driverRepository.findById(id)
                         .orElseThrow(
                                 () ->  new RuntimeException
-                                        ("Driver with ID: " + userID + "Not Found"));
+                                        ("Driver with ID: " + id + "Not Found"));
 
         updates.forEach((key, value) ->
                 {
@@ -63,10 +63,12 @@ public class DriverServiceImpl implements DriverService {
                     }
                 }
         );
+
+        driverRepository.save(dbDriver);
     }
 
     @Override
-    public List<DriverDto> getAllDrivers() {
+    public List<DriverResponse> getAllDrivers() {
 
         List<Driver> drivers =
                 driverRepository.findAll();
@@ -83,32 +85,32 @@ public class DriverServiceImpl implements DriverService {
     }
 
     @Override
-    public DriverDto getDriverById(UUID userID){
+    public DriverResponse getDriverById(UUID id){
 
         Driver dbDriver =
-                driverRepository.findByUserId(userID)
+                driverRepository.findById(id)
                         .orElseThrow(
                                 () ->  new RuntimeException
-                                        ("Driver with ID: " + userID
+                                        ("Driver with ID: " + id
                                                 + "Not Found"));
 
         return
                 ResponseConversion.toDriverResponse(dbDriver);
     }
 
-    // Blocked or Un-Blocked (Through Event)
-    @Override
-    public void toggleDriverStatus(DriverStatusChangedEventDto driverStatusChangedEventDto){
-
-        // Find Driver
-        Driver dbDriver =
-                driverRepository.findByUserId(driverStatusChangedEventDto.getUserID())
-                        .orElseThrow(
-                                () ->  new RuntimeException
-                                        ("Driver with ID: "
-                                                + driverStatusChangedEventDto
-                                                .getUserID()
-                                                + "Not Found"));
-        dbDriver.setStatus(Status.valueOf(driverStatusChangedEventDto.getFleetStatus()));
-    }
+//    // Blocked or Un-Blocked (Through Event)
+//    @Override
+//    public void toggleDriverStatus(DriverStatusChangedEventDto driverStatusChangedEventDto){
+//
+//        // Find Driver
+//        Driver dbDriver =
+//                driverRepository.findById(driverStatusChangedEventDto.getId())
+//                        .orElseThrow(
+//                                () ->  new RuntimeException
+//                                        ("Driver with ID: "
+//                                                + driverStatusChangedEventDto
+//                                                .getId()
+//                                                + "Not Found"));
+//        dbDriver.setStatus(Status.valueOf(driverStatusChangedEventDto.getFleetStatus()));
+//    }
 }

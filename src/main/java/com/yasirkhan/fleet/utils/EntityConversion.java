@@ -10,7 +10,7 @@ public class EntityConversion {
 
         Driver driver =
                 new Driver();
-        driver.setUserID(driverDto.getUserID());
+        driver.setId(driverDto.getId());
         driver.setName(driverDto.getName());
         driver.setFatherName(driverDto.getFatherName());
         driver.setEmail(driverDto.getEmail());

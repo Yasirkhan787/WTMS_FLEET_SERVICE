@@ -1,6 +1,7 @@
 package com.yasirkhan.fleet.controllers;
 
 import com.yasirkhan.fleet.models.dtos.DriverDto;
+import com.yasirkhan.fleet.responses.DriverResponse;
 import com.yasirkhan.fleet.services.DriverService;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import org.springframework.http.ResponseEntity;
@@ -20,30 +21,30 @@ public class DriverController {
         this.driverService = driverService;
     }
 
-    @PatchMapping("/update/{userID}")
+    @PatchMapping("/update/{id}")
 
     public ResponseEntity<Void> patchDriver(
-            @PathVariable UUID userID,
+            @PathVariable UUID id,
             @RequestBody Map<String, Object> updates) {
 
-        driverService.updateDriver(userID, updates);
+        driverService.updateDriver(id, updates);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/all")
     // @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<DriverDto>> getAllDrivers(){
+    public ResponseEntity<List<DriverResponse>> getAllDrivers(){
 
         return
                 ResponseEntity.ok(driverService.getAllDrivers());
     }
 
-    @GetMapping("/{userID}")
+    @GetMapping("/{id}")
     // @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<DriverDto> getDriverById(@PathVariable UUID userID){
+    public ResponseEntity<DriverResponse> getDriverById(@PathVariable UUID id){
 
         return
-                ResponseEntity.ok(driverService.getDriverById(userID));
+                ResponseEntity.ok(driverService.getDriverById(id));
     }
 
 }

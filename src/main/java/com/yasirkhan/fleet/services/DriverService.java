@@ -3,6 +3,7 @@ package com.yasirkhan.fleet.services;
 import com.yasirkhan.fleet.models.dtos.DriverDto;
 import com.yasirkhan.fleet.models.dtos.DriverStatusChangedEventDto;
 import com.yasirkhan.fleet.models.entities.Status;
+import com.yasirkhan.fleet.responses.DriverResponse;
 
 import java.util.List;
 import java.util.Map;
@@ -12,12 +13,12 @@ public interface DriverService {
 
     void addDriver(DriverDto driverDto);
 
-    void updateDriver(UUID userID, Map<String, Object> updates);
+    void updateDriver(UUID id, Map<String, Object> updates);
 
-    List<DriverDto> getAllDrivers();
+    List<DriverResponse> getAllDrivers();
 
-    DriverDto getDriverById(UUID userID);
+    DriverResponse getDriverById(UUID id);
 
-    void toggleDriverStatus(DriverStatusChangedEventDto driverStatusChangedEventDto);
+    //void toggleDriverStatus(DriverStatusChangedEventDto driverStatusChangedEventDto);
 
 }

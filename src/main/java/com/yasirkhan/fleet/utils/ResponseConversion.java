@@ -2,14 +2,15 @@ package com.yasirkhan.fleet.utils;
 
 import com.yasirkhan.fleet.models.dtos.DriverDto;
 import com.yasirkhan.fleet.models.entities.Driver;
+import com.yasirkhan.fleet.responses.DriverResponse;
 
 public class ResponseConversion {
 
-    public static DriverDto toDriverResponse(Driver driver){
+    public static DriverResponse toDriverResponse(Driver driver){
 
-        return DriverDto
+        return DriverResponse
                 .builder()
-                .userID(driver.getUserID())
+                .id(driver.getId())
                 .name(driver.getName())
                 .fatherName(driver.getFatherName())
                 .email(driver.getEmail())
@@ -19,7 +20,7 @@ public class ResponseConversion {
                 .gender(driver.getGender())
                 .licenseNo(driver.getLicenseNo())
                 .licenseExpiry(driver.getLicenseExpiry())
-                //.status(driver.setStatus())
+                .status(driver.getStatus())
                 .build();
 
     }
