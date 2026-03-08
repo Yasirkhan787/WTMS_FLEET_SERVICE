@@ -1,6 +1,7 @@
 package com.yasirkhan.fleet.services.implementations;
 
 import com.yasirkhan.fleet.models.dtos.DriverDto;
+import com.yasirkhan.fleet.models.dtos.DriverStatusChangedEventDto;
 import com.yasirkhan.fleet.models.entities.Status;
 import com.yasirkhan.fleet.services.DriverService;
 import com.yasirkhan.fleet.services.EventConsumerService;
@@ -23,7 +24,7 @@ public class EventConsumerServiceImpl implements EventConsumerService {
 
     // TODO: NEED TO BE UPDATE
     @Override
-    public void consumeDriverStatusEvent(DriverDto driverEventDto) {
-        driverService.toggleDriverStatus(driverEventDto.getUserID(), Status.BLOCKED);
+    public void consumeDriverStatusEvent(DriverStatusChangedEventDto driverStatusChangedEventDto) {
+        driverService.toggleDriverStatus(driverStatusChangedEventDto);
     }
 }

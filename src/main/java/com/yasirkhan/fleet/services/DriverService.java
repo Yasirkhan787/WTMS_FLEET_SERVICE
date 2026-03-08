@@ -1,6 +1,7 @@
 package com.yasirkhan.fleet.services;
 
 import com.yasirkhan.fleet.models.dtos.DriverDto;
+import com.yasirkhan.fleet.models.dtos.DriverStatusChangedEventDto;
 import com.yasirkhan.fleet.models.entities.Status;
 
 import java.util.List;
@@ -17,6 +18,6 @@ public interface DriverService {
 
     DriverDto getDriverById(UUID userID);
 
-    void toggleDriverStatus(UUID userID, Status status);
+    void toggleDriverStatus(DriverStatusChangedEventDto driverStatusChangedEventDto);
 
 }

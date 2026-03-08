@@ -1,6 +1,7 @@
 package com.yasirkhan.fleet.services.implementations;
 
 import com.yasirkhan.fleet.models.dtos.DriverDto;
+import com.yasirkhan.fleet.models.dtos.DriverStatusChangedEventDto;
 import com.yasirkhan.fleet.models.entities.Driver;
 import com.yasirkhan.fleet.models.entities.Status;
 import com.yasirkhan.fleet.repositories.DriverRepository;
@@ -97,15 +98,17 @@ public class DriverServiceImpl implements DriverService {
 
     // Blocked or Un-Blocked (Through Event)
     @Override
-    public void toggleDriverStatus(UUID userID, Status status){
+    public void toggleDriverStatus(DriverStatusChangedEventDto driverStatusChangedEventDto){
 
         // Find Driver
         Driver dbDriver =
-                driverRepository.findByUserId(userID)
+                driverRepository.findByUserId(driverStatusChangedEventDto.getUserID())
                         .orElseThrow(
                                 () ->  new RuntimeException
-                                        ("Driver with ID: " + userID
+                                        ("Driver with ID: "
+                                                + driverStatusChangedEventDto
+                                                .getUserID()
                                                 + "Not Found"));
-        dbDriver.setStatus(status);
+        dbDriver.setStatus(Status.valueOf(driverStatusChangedEventDto.getFleetStatus()));
     }
 }
