@@ -21,13 +21,9 @@ public class EventConsumerServiceImpl implements EventConsumerService {
         driverService.addDriver(driverEventDto);
     }
 
-    @Override
-    public void consumeDriverUpdationEvent(DriverDto driverEventDto) {
-        driverService.updateDriver(driverEventDto);
-    }
-
+    // TODO: NEED TO BE UPDATE
     @Override
     public void consumeDriverStatusEvent(DriverDto driverEventDto) {
-        driverService.updateStatus(driverEventDto.getUserID(), Status.BLOCKED);
+        driverService.toggleDriverStatus(driverEventDto.getUserID(), Status.BLOCKED);
     }
 }

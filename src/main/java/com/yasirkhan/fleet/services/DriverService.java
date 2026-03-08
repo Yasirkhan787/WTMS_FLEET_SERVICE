@@ -2,20 +2,21 @@ package com.yasirkhan.fleet.services;
 
 import com.yasirkhan.fleet.models.dtos.DriverDto;
 import com.yasirkhan.fleet.models.entities.Status;
-import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface DriverService {
 
     void addDriver(DriverDto driverDto);
 
-    void updateDriver(DriverDto driverDto);
+    void updateDriver(UUID userID, Map<String, Object> updates);
 
     List<DriverDto> getAllDrivers();
 
-    DriverDto getDriverById(UUID userId);
+    DriverDto getDriverById(UUID userID);
 
-    void updateStatus(UUID userID, Status status);
+    void toggleDriverStatus(UUID userID, Status status);
+
 }

@@ -6,7 +6,5 @@ public interface EventConsumerService {
 
     void consumeDriverCreationEvent(DriverDto driverEventDto);
 
-    void consumeDriverUpdationEvent(DriverDto driverEventDto);
-
     void consumeDriverStatusEvent(DriverDto driverEventDto);
 }

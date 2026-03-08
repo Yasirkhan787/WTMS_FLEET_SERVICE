@@ -9,10 +9,13 @@ import com.yasirkhan.fleet.utils.EntityConversion;
 import com.yasirkhan.fleet.utils.ResponseConversion;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("SpellCheckingInspection")
 @Service
 public class DriverServiceImpl implements DriverService {
 
@@ -22,7 +25,6 @@ public class DriverServiceImpl implements DriverService {
         this.driverRepository = driverRepository;
     }
 
-    // (Through Event)
     @Override
     public void addDriver(DriverDto driverDto) {
 
@@ -35,61 +37,31 @@ public class DriverServiceImpl implements DriverService {
                 driverRepository.save(driver);
     }
 
-    // (Through Event)
     @Override
-    public void updateDriver(DriverDto driverDto){
+    public void updateDriver(UUID userID, Map<String, Object> updates) {
 
-        // Find Driver
-        Driver dbDriver =
-                driverRepository.findByUserId(driverDto.getUserID())
-                        .orElseThrow(
-                                () ->  new RuntimeException
-                                        ("Driver with ID: " + driverDto.getUserID()
-                                                + "Not Found"));
-
-        // Convert Dto -> Driver Entity
-        dbDriver.setName(driverDto.getName());
-        dbDriver.setFatherName(driverDto.getFatherName());
-        dbDriver.setEmail(driverDto.getEmail());
-        dbDriver.setCnic(driverDto.getCnic());
-        dbDriver.setPhoneNo(driverDto.getPhoneNo());
-        dbDriver.setAddress(driverDto.getAddress());
-        dbDriver.setGender(driverDto.getGender());
-        dbDriver.setLicenseNo(driverDto.getLicenseNo());
-        dbDriver.setLicenseExpiry(driverDto.getLicenseExpiry());
-
-        // Save To Database
-        Driver updatedDriver =
-                driverRepository.save(dbDriver);
-    }
-
-    // Blocked or Un-Blocked (Through Event)
-    public void updateBStatus(UUID userID, Status status){
-
-        // Find Driver
         Driver dbDriver =
                 driverRepository.findByUserId(userID)
                         .orElseThrow(
                                 () ->  new RuntimeException
-                                        ("Driver with ID: " + userID
-                                                + "Not Found"));
-        dbDriver.setStatus(status);
-    }
+                                        ("Driver with ID: " + userID + "Not Found"));
 
-
-    // Change Status (Direct API)
-    @Override
-    public void updateStatus(UUID userID, Status status){
-
-        // Find Driver
-        Driver dbDriver =
-                driverRepository.findByUserId(userID)
-                        .orElseThrow(
-                                () ->  new RuntimeException
-                                        ("Driver with ID: " + userID
-                                                + "Not Found"));
-
-        dbDriver.setStatus(status);
+        updates.forEach((key, value) ->
+                {
+                    switch (key){
+                        case "name" -> dbDriver.setName((String) value);
+                        case "fatherName" -> dbDriver.setFatherName((String) value);
+                        case "email" -> dbDriver.setEmail((String) value);
+                        case "cnic" -> dbDriver.setCnic((String) value);
+                        case "gender" -> dbDriver.setGender((String) value);
+                        case "phoneNo" -> dbDriver.setPhoneNo((String) value);
+                        case "address" -> dbDriver.setAddress((String) value);
+                        case "licenseNo" -> dbDriver.setLicenseNo((String) value);
+                        case "licenseExpiry" -> dbDriver.setLicenseExpiry(LocalDate.parse((String) value));
+                        case "status" -> dbDriver.setStatus(Status.valueOf((String) value));
+                    }
+                }
+        );
     }
 
     @Override
@@ -110,16 +82,30 @@ public class DriverServiceImpl implements DriverService {
     }
 
     @Override
-    public DriverDto getDriverById(UUID userId){
+    public DriverDto getDriverById(UUID userID){
 
         Driver dbDriver =
-                driverRepository.findByUserId(userId)
+                driverRepository.findByUserId(userID)
                         .orElseThrow(
                                 () ->  new RuntimeException
-                                        ("Driver with ID: " + userId
+                                        ("Driver with ID: " + userID
                                                 + "Not Found"));
 
         return
                 ResponseConversion.toDriverResponse(dbDriver);
+    }
+
+    // Blocked or Un-Blocked (Through Event)
+    @Override
+    public void toggleDriverStatus(UUID userID, Status status){
+
+        // Find Driver
+        Driver dbDriver =
+                driverRepository.findByUserId(userID)
+                        .orElseThrow(
+                                () ->  new RuntimeException
+                                        ("Driver with ID: " + userID
+                                                + "Not Found"));
+        dbDriver.setStatus(status);
     }
 }

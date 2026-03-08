@@ -3,7 +3,9 @@ package com.yasirkhan.fleet.events;
 import com.yasirkhan.fleet.models.dtos.DriverDto;
 import com.yasirkhan.fleet.services.EventConsumerService;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Component;
 
+@Component
 public class DriverEvent {
 
     private final EventConsumerService eventConsumerService;
