@@ -1,7 +1,7 @@
 package com.yasirkhan.fleet.services.implementations;
 
+import com.yasirkhan.fleet.exceptions.ResourceNotFoundException;
 import com.yasirkhan.fleet.models.dtos.DriverDto;
-import com.yasirkhan.fleet.models.dtos.DriverStatusChangedEventDto;
 import com.yasirkhan.fleet.models.entities.Driver;
 import com.yasirkhan.fleet.models.entities.Status;
 import com.yasirkhan.fleet.repositories.DriverRepository;
@@ -44,7 +44,7 @@ public class DriverServiceImpl implements DriverService {
         Driver dbDriver =
                 driverRepository.findById(id)
                         .orElseThrow(
-                                () ->  new RuntimeException
+                                () ->  new ResourceNotFoundException
                                         ("Driver with ID: " + id + "Not Found"));
 
         updates.forEach((key, value) ->
@@ -74,7 +74,7 @@ public class DriverServiceImpl implements DriverService {
                 driverRepository.findAll();
 
         if (drivers.isEmpty()) {
-            throw new RuntimeException("No Driver Found in Database");
+            throw new ResourceNotFoundException("No Driver Found in Database");
         }
 
         return
@@ -90,7 +90,7 @@ public class DriverServiceImpl implements DriverService {
         Driver dbDriver =
                 driverRepository.findById(id)
                         .orElseThrow(
-                                () ->  new RuntimeException
+                                () ->  new ResourceNotFoundException
                                         ("Driver with ID: " + id
                                                 + "Not Found"));
 
