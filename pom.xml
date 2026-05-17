@@ -32,6 +32,11 @@
 	</properties>
 	<dependencies>
 
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
 		<!-- Source: https://mvnrepository.com/artifact/org.hibernate/hibernate-spatial -->
 		<dependency>
 			<groupId>org.hibernate</groupId>
