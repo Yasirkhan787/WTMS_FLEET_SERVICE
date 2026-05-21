@@ -29,25 +29,25 @@ public class VehicleController {
                 new ResponseEntity<>(vehicleService.addVehicle(request), HttpStatus.CREATED);
     }
 
-    @PostMapping("/update")
+    @PatchMapping("/update")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity updateVehicle(@RequestBody Map<String, Object> updates) {
+    public ResponseEntity<String> updateVehicle(@RequestBody Map<String, Object> updates) {
 
         vehicleService.updateVehicle(updates);
 
         return new
-                ResponseEntity<>("Vehicle with ID:" + updates.get("vehicleId") + "Updated Successfully",
+                ResponseEntity<>("Vehicle with Vehicle No:" + updates.get("vehicleNo") + "Updated Successfully",
                         HttpStatus.NO_CONTENT);
     }
 
-    @PostMapping("/block/{id}")
+    @PatchMapping("/block/{vehicleNo}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity blockVehicle(@PathVariable UUID vehicleId, @RequestParam Boolean blockStatus ) {
+    public ResponseEntity<String> blockVehicle(@PathVariable String vehicleNo, @RequestParam Boolean blockStatus ) {
 
-        vehicleService.blockVehicle(vehicleId, blockStatus);
+        vehicleService.blockVehicle(vehicleNo, blockStatus);
 
         return new
-                ResponseEntity<>("Vehicle with ID:" + vehicleId + "Blocked Successfully",
+                ResponseEntity<>("Vehicle with vehicle No:" + vehicleNo + "Blocked Successfully",
                 HttpStatus.NO_CONTENT);
     }
 
@@ -58,10 +58,10 @@ public class VehicleController {
                 new ResponseEntity<>(vehicleService.getAll(),HttpStatus.OK);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{vehicleNo}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPERVISOR')")
-    public ResponseEntity<VehicleResponse> getVehicleById(@PathVariable UUID id){
+    public ResponseEntity<VehicleResponse> getVehicleById(@PathVariable String vehicleNo){
         return
-                new ResponseEntity<>(vehicleService.getVehicleById(id),HttpStatus.OK);
+                new ResponseEntity<>(vehicleService.getVehicleById(vehicleNo),HttpStatus.OK);
     }
 }

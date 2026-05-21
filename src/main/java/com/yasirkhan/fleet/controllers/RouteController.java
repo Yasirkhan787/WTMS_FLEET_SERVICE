@@ -25,28 +25,23 @@ public class RouteController {
     @PostMapping("/add")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RouteResponse> addRoute(@RequestBody RouteRequest routeRequest) {
-
         return ResponseEntity
                 .ok(routeService.addRoute(routeRequest));
     }
 
-    @PostMapping("/update")
+    @PatchMapping("/update")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity updateRoute(@RequestBody Map<String, Object> updates) {
-
+    public ResponseEntity<String> updateRoute(@RequestBody Map<String, Object> updates) {
         routeService.updateRoute(updates);
-
         return new
                 ResponseEntity<>("Route with ID:" + updates.get("routeId") + "Updated Successfully",
                 HttpStatus.NO_CONTENT);
     }
 
-    @PostMapping("/block/{id}")
+    @PatchMapping("/block/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity blockRoute(@PathVariable UUID id, @RequestParam Boolean blockStatus ) {
-
+    public ResponseEntity<String> blockRoute(@PathVariable UUID id, @RequestParam Boolean blockStatus ) {
         routeService.blockRoute(id, blockStatus);
-
         return new
                 ResponseEntity<>("Route with ID:" + id + "Blocked Successfully",
                 HttpStatus.NO_CONTENT);
@@ -55,7 +50,6 @@ public class RouteController {
     @GetMapping("{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPERVISOR')")
     public ResponseEntity<RouteResponse> getRoute(@PathVariable UUID id) {
-
         return ResponseEntity
                 .ok(routeService.getRouteByID(id));
     }
@@ -63,7 +57,6 @@ public class RouteController {
     @GetMapping("all")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPERVISOR')")
     public ResponseEntity<List<RouteResponse>> getAllRoutes() {
-
         return ResponseEntity
                 .ok(routeService.getAllRoutes());
     }

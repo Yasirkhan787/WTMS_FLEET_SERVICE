@@ -15,9 +15,6 @@ import java.util.UUID;
 public class Vehicle {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID vehicleId;
-
     private String vehicleNo;
 
     private String model;

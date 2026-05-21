@@ -14,7 +14,6 @@ public class ResponseConversion {
         return
                 VehicleResponse
                         .builder()
-                        .vehicleId(savedVehicle.getVehicleId())
                         .vehicleNo(savedVehicle.getVehicleNo())
                         .model(savedVehicle.getModel())
                         .capacity(savedVehicle.getCapacity())

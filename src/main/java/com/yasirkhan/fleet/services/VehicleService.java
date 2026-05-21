@@ -14,9 +14,9 @@ public interface VehicleService {
 
     List<VehicleResponse> getAll();
 
-    VehicleResponse getVehicleById(UUID vehicleId);
+    VehicleResponse getVehicleById(String vehicleNo);
 
     void updateVehicle(Map<String, Object> updates);
 
-    void blockVehicle(UUID vehicleId, Boolean blockStatus);
+    void blockVehicle(String vehicleNo, Boolean blockStatus);
 }

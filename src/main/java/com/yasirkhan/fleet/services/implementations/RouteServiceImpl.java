@@ -1,8 +1,11 @@
 package com.yasirkhan.fleet.services.implementations;
 
 import com.yasirkhan.fleet.exceptions.DataBaseException;
+import com.yasirkhan.fleet.models.dtos.RouteResponseEventDto;
+import com.yasirkhan.fleet.models.dtos.VehicleResponseEventDto;
 import com.yasirkhan.fleet.models.entities.Route;
 import com.yasirkhan.fleet.models.entities.Status;
+import com.yasirkhan.fleet.producers.RouteEventProducer;
 import com.yasirkhan.fleet.repositories.RouteRepository;
 import com.yasirkhan.fleet.requests.RouteRequest;
 import com.yasirkhan.fleet.responses.RouteResponse;
@@ -24,8 +27,11 @@ public class RouteServiceImpl implements RouteService {
 
     private final RouteRepository routeRepository;
 
-    public RouteServiceImpl(RouteRepository routeRepository) {
+    private final RouteEventProducer producer;
+
+    public RouteServiceImpl(RouteRepository routeRepository, RouteEventProducer producer) {
         this.routeRepository = routeRepository;
+        this.producer = producer;
     }
 
     @Override
@@ -47,6 +53,16 @@ public class RouteServiceImpl implements RouteService {
 
         try {
             savedRoute = routeRepository.save(route);
+            // Send event to kafka
+            RouteResponseEventDto eventDto =
+                    RouteResponseEventDto
+                            .builder()
+                            .routeId(savedRoute.getRouteId())
+                            .status("SUCCESS")
+                            .type("CREATE")
+                            .message("Route added successfully")
+                            .build();
+            producer.sendRouteResponseEvent(eventDto);
         } catch (Exception e) {
             throw new DataBaseException(e.getMessage());
         }
@@ -78,6 +94,21 @@ public class RouteServiceImpl implements RouteService {
                     case "status" -> dbRoute.setStatus((Status) value);
                 }
         });
+        try {
+            routeRepository.saveAndFlush(dbRoute);
+            // Send event to kafka
+            RouteResponseEventDto eventDto =
+                    RouteResponseEventDto
+                            .builder()
+                            .routeId(dbRoute.getRouteId())
+                            .status("SUCCESS")
+                            .type("UPDATE")
+                            .message("Route updated successfully")
+                            .build();
+            producer.sendRouteResponseEvent(eventDto);
+        } catch (Exception e) {
+            throw new DataBaseException(e.getMessage());
+        }
     }
 
     @Override
@@ -97,6 +128,16 @@ public class RouteServiceImpl implements RouteService {
         Route savedRoute = null;
         try {
             savedRoute = routeRepository.save(dbRoute);
+            // Send event to kafka
+            RouteResponseEventDto eventDto =
+                    RouteResponseEventDto
+                            .builder()
+                            .routeId(dbRoute.getRouteId())
+                            .status(status)
+                            .type("STATUS_UPDATE")
+                            .message("Route Status{ " + status + " } updated successfully")
+                            .build();
+            producer.sendRouteResponseEvent(eventDto);
         } catch (Exception e) {
             throw new DataBaseException(e.getMessage());
         }

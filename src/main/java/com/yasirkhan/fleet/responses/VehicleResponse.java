@@ -14,7 +14,6 @@ import java.util.UUID;
 @AllArgsConstructor
 public class VehicleResponse {
 
-    private UUID vehicleId;
     private String vehicleNo;
     private String model;
     private float capacity;

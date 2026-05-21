@@ -18,5 +18,4 @@ public class VehicleRequest {
     private String engineNo;
     private String chassisNo;
     private String registeredTo;
-    private Status status;
 }
