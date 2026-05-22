@@ -19,13 +19,37 @@ public class Route {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID routeId;
 
+    @Column(nullable = false)
     private String routeName;
 
+    @Column(nullable = false)
+    private String origin;
+
+    // Store the exact pin coordinates
+    @Column(nullable = false)
+    private Double originLat;
+
+    @Column(nullable = false)
+    private Double originLng;
+
+    @Column(nullable = false)
+    private String destination;
+
+    @Column(nullable = false)
+    private Double destinationLat;
+
+    @Column(nullable = false)
+    private Double destinationLng;
+
+    @Column(nullable = false)
     private LineString path;
 
+    @Column(nullable = false)
     private String estimatedDistance;
 
+    @Column(nullable = false)
     private String estimatedTime;
 
+    @Enumerated(EnumType.STRING)
     private Status status;
 }

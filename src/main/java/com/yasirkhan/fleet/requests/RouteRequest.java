@@ -1,21 +1,37 @@
 package com.yasirkhan.fleet.requests;
 
-import com.yasirkhan.fleet.models.entities.Status;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import com.yasirkhan.fleet.models.dtos.CoordinateDto;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-
 
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class RouteRequest {
 
+    @NotBlank(message = "Route name is required")
     private String routeName;
-    private String path;               // Encoded Polyline
+
+    @NotBlank(message = "Origin name is required")
+    private String origin;
+
+    @Valid
+    @NotNull(message = "Origin coordinates are required")
+    private CoordinateDto originCoords;
+
+    @NotBlank(message = "Destination name is required")
+    private String destination;
+
+    @Valid
+    @NotNull(message = "Destination coordinates are required")
+    private CoordinateDto destinationCoords;
+
+    @NotBlank(message = "Path data is required")
+    private String path;
+
+    @NotBlank(message = "Distance is required")
     private String estimatedDistance;
+
+    @NotBlank(message = "Time is required")
     private String estimatedTime;
-    private Status status;
 }

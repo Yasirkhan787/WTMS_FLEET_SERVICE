@@ -1,6 +1,7 @@
 package com.yasirkhan.fleet.utils;
 
 import com.google.maps.internal.PolylineEncoding;
+import com.yasirkhan.fleet.models.dtos.CoordinateDto;
 import com.yasirkhan.fleet.models.entities.Route;
 import com.yasirkhan.fleet.models.entities.Vehicle;
 import com.yasirkhan.fleet.responses.RouteResponse;
@@ -24,17 +25,27 @@ public class ResponseConversion {
                         .build();
     }
 
-    public static RouteResponse toRouteResponse(Route savedRoute){
+    public static RouteResponse toRouteResponse(Route route) {
+        return RouteResponse.builder()
+                .routeId(route.getRouteId())
+                .routeName(route.getRouteName())
 
-        return
-                RouteResponse
-                        .builder()
-                        .routeId(savedRoute.getRouteId())
-                        .routeName(savedRoute.getRouteName())
-                        .path(SpatialUtils.toPolyLine(savedRoute.getPath()))
-                        .estimatedTime(savedRoute.getEstimatedTime())
-                        .estimatedDistance(savedRoute.getEstimatedDistance())
-                        .status(savedRoute.getStatus())
-                        .build();
+                .origin(route.getOrigin())
+                .originCoords(CoordinateDto.builder()
+                        .lat(route.getOriginLat())
+                        .lng(route.getOriginLng())
+                        .build())
+
+                .destination(route.getDestination())
+                .destinationCoords(CoordinateDto.builder()
+                        .lat(route.getDestinationLat())
+                        .lng(route.getDestinationLng())
+                        .build())
+
+                .estimatedDistance(route.getEstimatedDistance())
+                .estimatedTime(route.getEstimatedTime())
+                .status(route.getStatus().name())
+                .path(SpatialUtils.toPolyLine(route.getPath()))
+                .build();
     }
 }
