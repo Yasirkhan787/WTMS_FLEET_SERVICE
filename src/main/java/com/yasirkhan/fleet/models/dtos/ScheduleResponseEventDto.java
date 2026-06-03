@@ -1,9 +1,8 @@
 package com.yasirkhan.fleet.models.dtos;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.yasirkhan.fleet.models.enums.EventStatus;
 import com.yasirkhan.fleet.models.enums.EventType;
-import com.yasirkhan.fleet.responses.VehicleResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,10 +12,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class VehicleResponseEventDto {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class ScheduleResponseEventDto {
 
     private EventType type;
     private EventStatus eventTypeStatus;
-    private VehicleResponse vehicleData;
+    private String vehicleNo;
+    private String vehicleStatus;
 }

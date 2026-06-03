@@ -1,6 +1,7 @@
 package com.yasirkhan.fleet.controllers;
 
 import com.yasirkhan.fleet.requests.VehicleRequest;
+import com.yasirkhan.fleet.requests.VehicleUpdateRequest;
 import com.yasirkhan.fleet.responses.VehicleResponse;
 import com.yasirkhan.fleet.services.VehicleService;
 import org.springframework.http.HttpStatus;
@@ -29,14 +30,14 @@ public class VehicleController {
                 new ResponseEntity<>(vehicleService.addVehicle(request), HttpStatus.CREATED);
     }
 
-    @PatchMapping("/update")
+    @PatchMapping("/update/{vehicleNo}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> updateVehicle(@RequestBody Map<String, Object> updates) {
+    public ResponseEntity<String> updateVehicle(@PathVariable String vehicleNo, @RequestBody VehicleUpdateRequest updates) {
 
-        vehicleService.updateVehicle(updates);
+        vehicleService.updateVehicle(vehicleNo, updates);
 
         return new
-                ResponseEntity<>("Vehicle with Vehicle No:" + updates.get("vehicleNo") + "Updated Successfully",
+                ResponseEntity<>("Vehicle with Vehicle No:" + vehicleNo + "Updated Successfully",
                         HttpStatus.NO_CONTENT);
     }
 

@@ -22,13 +22,13 @@ public class RouteEventProducer {
             if (ex == null) {
                 log.info("SUCCESS: Route Response {} event sent for Route Id: {} (Partition: {}, Offset: {})",
                         eventDto.getType(),
-                        eventDto.getRouteId(),
+                        eventDto.getRouteData().getRouteId(),
                         result.getRecordMetadata().partition(),
                         result.getRecordMetadata().offset());
             } else {
                 log.error("FAILED to send Route Response {} event for Route Id: {}. Reason: {}",
                         eventDto.getType(),
-                        eventDto.getRouteId(),
+                        eventDto.getRouteData().getRouteId(),
                         ex.getMessage());
             }
         });

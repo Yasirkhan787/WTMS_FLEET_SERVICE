@@ -1,6 +1,7 @@
 package com.yasirkhan.fleet.controllers;
 
 import com.yasirkhan.fleet.requests.RouteRequest;
+import com.yasirkhan.fleet.requests.RouteUpdateRequest;
 import com.yasirkhan.fleet.responses.RouteResponse;
 import com.yasirkhan.fleet.services.RouteService;
 import org.springframework.http.HttpStatus;
@@ -29,13 +30,11 @@ public class RouteController {
                 .ok(routeService.addRoute(routeRequest));
     }
 
-    @PatchMapping("/update")
+    @PatchMapping("/update/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> updateRoute(@RequestBody Map<String, Object> updates) {
-        routeService.updateRoute(updates);
-        return new
-                ResponseEntity<>("Route with ID:" + updates.get("routeId") + "Updated Successfully",
-                HttpStatus.NO_CONTENT);
+    public ResponseEntity<String> updateRoute(@PathVariable UUID id, @RequestBody RouteUpdateRequest updateRequest) {
+        routeService.updateRoute(id, updateRequest);
+        return ResponseEntity.ok("Route with ID: " + id + " updated successfully");
     }
 
     @PatchMapping("/block/{id}")

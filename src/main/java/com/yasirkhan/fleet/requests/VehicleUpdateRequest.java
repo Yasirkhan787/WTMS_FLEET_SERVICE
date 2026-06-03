@@ -1,5 +1,6 @@
 package com.yasirkhan.fleet.requests;
 
+import com.yasirkhan.fleet.models.enums.Status;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,12 +10,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class VehicleRequest {
+public class VehicleUpdateRequest {
 
-    private String vehicleNo;
     private String model;
-    private float capacity;
+    private Float capacity; // Wrapper class to allow nulls
     private String engineNo;
     private String chassisNo;
     private String registeredTo;
+    private Status status;
 }

@@ -1,11 +1,10 @@
 package com.yasirkhan.fleet.models.entities;
 
+import com.yasirkhan.fleet.models.enums.Status;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.UUID;
 
 @Data
 @NoArgsConstructor

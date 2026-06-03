@@ -1,197 +1,198 @@
 package com.yasirkhan.fleet.services.implementations;
 
 import com.yasirkhan.fleet.exceptions.DataBaseException;
+import com.yasirkhan.fleet.exceptions.ResourceAlreadyExistException;
+import com.yasirkhan.fleet.exceptions.ResourceNotFoundException;
 import com.yasirkhan.fleet.models.dtos.RouteResponseEventDto;
 import com.yasirkhan.fleet.models.entities.Route;
-import com.yasirkhan.fleet.models.entities.Status;
-import com.yasirkhan.fleet.producers.RouteEventProducer;
+import com.yasirkhan.fleet.models.enums.EventStatus;
+import com.yasirkhan.fleet.models.enums.EventType;
+import com.yasirkhan.fleet.models.enums.Status;
 import com.yasirkhan.fleet.repositories.RouteRepository;
 import com.yasirkhan.fleet.requests.RouteRequest;
+import com.yasirkhan.fleet.requests.RouteUpdateRequest;
 import com.yasirkhan.fleet.responses.RouteResponse;
 import com.yasirkhan.fleet.services.RouteService;
 import com.yasirkhan.fleet.utils.ResponseConversion;
 import com.yasirkhan.fleet.utils.SpatialUtils;
-import jakarta.transaction.Transactional;
-import org.apache.kafka.common.errors.DuplicateResourceException;
-import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.locationtech.jts.geom.LineString;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional(readOnly = true)
 public class RouteServiceImpl implements RouteService {
 
     private final RouteRepository routeRepository;
-    private final RouteEventProducer producer;
+    private final ApplicationEventPublisher eventPublisher;
+    private final RedisTemplate<String, Object> redisTemplate; // Injected Redis
 
-    public RouteServiceImpl(RouteRepository routeRepository, RouteEventProducer producer) {
+    public RouteServiceImpl(RouteRepository routeRepository,
+                            ApplicationEventPublisher eventPublisher,
+                            RedisTemplate<String, Object> redisTemplate) {
         this.routeRepository = routeRepository;
-        this.producer = producer;
+        this.eventPublisher = eventPublisher;
+        this.redisTemplate = redisTemplate;
     }
 
     @Override
     @Transactional
     public RouteResponse addRoute(RouteRequest request) {
-
         LineString path = SpatialUtils.toLineString(request.getPath());
 
-        // Check for duplicate Geographic Path
         if (routeRepository.existsByPathEquals(path)) {
-            throw new DuplicateResourceException("This exact geographic route has already been mapped.");
+            throw new ResourceAlreadyExistException("This exact geographic route has already been mapped.");
         }
 
         Route route = new Route();
         route.setRouteName(request.getRouteName());
-
-        // Set the Origin details
         route.setOrigin(request.getOrigin());
         route.setOriginLat(request.getOriginCoords().getLat());
         route.setOriginLng(request.getOriginCoords().getLng());
-
-        // Set the Destination details
         route.setDestination(request.getDestination());
         route.setDestinationLat(request.getDestinationCoords().getLat());
         route.setDestinationLng(request.getDestinationCoords().getLng());
-
         route.setPath(path);
         route.setEstimatedTime(request.getEstimatedTime());
         route.setEstimatedDistance(request.getEstimatedDistance());
         route.setStatus(Status.ACTIVE);
 
-        Route savedRoute;
-
         try {
-            savedRoute = routeRepository.save(route);
-            // Send event to kafka
-            RouteResponseEventDto eventDto =
-                    RouteResponseEventDto
-                            .builder()
-                            .routeId(savedRoute.getRouteId())
-                            .status("SUCCESS")
-                            .type("CREATE")
-                            .message("Route added successfully")
-                            .build();
-            producer.sendRouteResponseEvent(eventDto);
-        } catch (Exception e) {
-            throw new DataBaseException(e.getMessage());
-        }
+            Route savedRoute = routeRepository.saveAndFlush(route);
 
-        return ResponseConversion.toRouteResponse(savedRoute);
+            // Sync directly to local Redis cache
+            syncRouteToRedis(savedRoute);
+
+            RouteResponse response = ResponseConversion.toRouteResponse(savedRoute);
+
+            publishRouteEvent(EventType.CREATE, EventStatus.SUCCESS, response);
+
+            return response;
+        } catch (DataAccessException e) {
+            throw new DataBaseException("Failed to add route: " + e.getMessage());
+        }
     }
 
-    // Update Route
     @Override
     @Transactional
-    public void updateRoute(Map<String, Object> updates) {
+    public void updateRoute(UUID routeId, RouteUpdateRequest request) {
 
-        UUID routeId = UUID.fromString(updates.get("routeId").toString());
-
-        Route dbRoute = routeRepository
-                .findById(routeId)
+        Route dbRoute = routeRepository.findById(routeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Route with ID: " + routeId + " Not Found"));
 
-        updates.forEach((key, value) -> {
-            if (value != null) {
-                switch (key) {
-                    case "routeName" -> dbRoute.setRouteName((String) value);
-
-                    case "origin" -> dbRoute.setOrigin((String) value);
-                    case "originCoords" -> {
-                        Map<?, ?> coords = (Map<?, ?>) value;
-                        dbRoute.setOriginLat(((Number) coords.get("lat")).doubleValue());
-                        dbRoute.setOriginLng(((Number) coords.get("lng")).doubleValue());
-                    }
-
-                    case "destination" -> dbRoute.setDestination((String) value);
-                    case "destinationCoords" -> {
-                        Map<?, ?> coords = (Map<?, ?>) value;
-                        dbRoute.setDestinationLat(((Number) coords.get("lat")).doubleValue());
-                        dbRoute.setDestinationLng(((Number) coords.get("lng")).doubleValue());
-                    }
-
-                    case "path" -> {
-                        if (routeRepository.existsByPathEquals(SpatialUtils.toLineString((String) value))) {
-                            throw new DuplicateResourceException("This exact geographic route has already been mapped.");
-                        }
-                        dbRoute.setPath(SpatialUtils.toLineString((String) value));
-                    }
-                    case "estimatedTime" -> dbRoute.setEstimatedTime((String) value);
-                    case "estimatedDistance" -> dbRoute.setEstimatedDistance((String) value);
-                    case "status" -> dbRoute.setStatus(Status.valueOf(value.toString()));
-                }
+        if (request.getRouteName() != null) dbRoute.setRouteName(request.getRouteName());
+        if (request.getOrigin() != null) dbRoute.setOrigin(request.getOrigin());
+        if (request.getOriginCoords() != null) {
+            dbRoute.setOriginLat(request.getOriginCoords().getLat());
+            dbRoute.setOriginLng(request.getOriginCoords().getLng());
+        }
+        if (request.getDestination() != null) dbRoute.setDestination(request.getDestination());
+        if (request.getDestinationCoords() != null) {
+            dbRoute.setDestinationLat(request.getDestinationCoords().getLat());
+            dbRoute.setDestinationLng(request.getDestinationCoords().getLng());
+        }
+        if (request.getPath() != null) {
+            LineString newPath = SpatialUtils.toLineString(request.getPath());
+            if (routeRepository.existsByPathEquals(newPath)) {
+                throw new ResourceAlreadyExistException("This exact geographic route has already been mapped.");
             }
-        });
+            dbRoute.setPath(newPath);
+        }
+        if (request.getEstimatedTime() != null) dbRoute.setEstimatedTime(request.getEstimatedTime());
+        if (request.getEstimatedDistance() != null) dbRoute.setEstimatedDistance(request.getEstimatedDistance());
+        if (request.getStatus() != null) dbRoute.setStatus(request.getStatus());
 
         try {
-            routeRepository.saveAndFlush(dbRoute);
-            // Send event to kafka
-            RouteResponseEventDto eventDto =
-                    RouteResponseEventDto
-                            .builder()
-                            .routeId(dbRoute.getRouteId())
-                            .status("SUCCESS")
-                            .type("UPDATE")
-                            .message("Route updated successfully")
-                            .build();
-            producer.sendRouteResponseEvent(eventDto);
-        } catch (Exception e) {
-            throw new DataBaseException(e.getMessage());
+            Route updatedRoute = routeRepository.saveAndFlush(dbRoute);
+
+            // Sync the updated state to Redis
+            syncRouteToRedis(updatedRoute);
+
+            RouteResponse response = ResponseConversion.toRouteResponse(updatedRoute);
+            publishRouteEvent(EventType.UPDATE, EventStatus.SUCCESS, response);
+        } catch (DataAccessException e) {
+            throw new DataBaseException("Failed to update route: " + e.getMessage());
         }
     }
 
-    // Block Route
     @Override
+    @Transactional
     public void blockRoute(UUID routeId, Boolean blockStatus) {
-
-        Route dbRoute = routeRepository
-                .findById(routeId)
+        Route dbRoute = routeRepository.findById(routeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Route with ID: " + routeId + " Not Found"));
 
-        String status = blockStatus ? "BLOCKED" : "ACTIVE";
-        dbRoute.setStatus(Status.valueOf(status));
+        Status newStatus = blockStatus ? Status.BLOCKED : Status.ACTIVE;
+        dbRoute.setStatus(newStatus);
 
         try {
-            routeRepository.save(dbRoute);
-            // Send event to kafka
-            RouteResponseEventDto eventDto =
-                    RouteResponseEventDto
-                            .builder()
-                            .routeId(dbRoute.getRouteId())
-                            .status(status)
-                            .type("STATUS_UPDATE")
-                            .message("Route Status { " + status + " } updated successfully")
-                            .build();
-            producer.sendRouteResponseEvent(eventDto);
-        } catch (Exception e) {
-            throw new DataBaseException(e.getMessage());
+            Route updatedRoute = routeRepository.saveAndFlush(dbRoute);
+
+            // Sync the new status to Redis
+            syncRouteToRedis(updatedRoute);
+
+            RouteResponse response = ResponseConversion.toRouteResponse(updatedRoute);
+            publishRouteEvent(EventType.UPDATE, EventStatus.SUCCESS, response);
+        } catch (DataAccessException e) {
+            throw new DataBaseException("Failed to block route: " + e.getMessage());
         }
     }
 
-    // GetRoute By ID
     @Override
     public RouteResponse getRouteByID(UUID routeId) {
-        Route dbRoute = routeRepository
-                .findById(routeId)
+        Route dbRoute = routeRepository.findById(routeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Route with ID: " + routeId + " Not Found"));
-
         return ResponseConversion.toRouteResponse(dbRoute);
     }
 
-    // Get All Routes
     @Override
     public List<RouteResponse> getAllRoutes() {
-        List<Route> dbRoutes = routeRepository.findAll();
-
-        if (dbRoutes.isEmpty()) {
-            throw new ResourceNotFoundException("No Routes Found in Database");
-        }
-
-        return dbRoutes.stream()
+        return routeRepository.findAll().stream()
                 .map(ResponseConversion::toRouteResponse)
                 .collect(Collectors.toList());
+    }
+
+    // --- Redis Sync Helper (Route) ---
+    private void syncRouteToRedis(Route route) {
+        String redisKey = "wtms:route:" + route.getRouteId().toString();
+        Map<String, Object> data = new HashMap<>();
+
+        data.put("routeName", route.getRouteName());
+        data.put("origin", route.getOrigin());
+        data.put("originLat", String.valueOf(route.getOriginLat()));
+        data.put("originLng", String.valueOf(route.getOriginLng()));
+        data.put("destination", route.getDestination());
+        data.put("destinationLat", String.valueOf(route.getDestinationLat()));
+        data.put("destinationLng", String.valueOf(route.getDestinationLng()));
+
+        // Convert PostGIS LineString to standard Well-Known Text (WKT) string
+        if (route.getPath() != null) {
+            data.put("path", route.getPath().toString());
+        }
+
+        data.put("estimatedDistance", String.valueOf(route.getEstimatedDistance()));
+        data.put("estimatedTime", route.getEstimatedTime());
+        // data.put("estimatedFuel", String.valueOf(route.getEstimatedFuel()));
+        data.put("status", route.getStatus().name());
+
+        redisTemplate.opsForHash().putAll(redisKey, data);
+    }
+
+    // --- Kafka Publisher Helper ---
+    private void publishRouteEvent(EventType type, EventStatus status, RouteResponse response) {
+        RouteResponseEventDto eventDto = RouteResponseEventDto.builder()
+                .type(type)
+                .eventTypeStatus(status)
+                .routeData(response)
+                .build();
+        eventPublisher.publishEvent(eventDto);
     }
 }

@@ -1,4 +1,4 @@
-package com.yasirkhan.fleet.models.entities;
+package com.yasirkhan.fleet.models.enums;
 
 public enum Status {
 

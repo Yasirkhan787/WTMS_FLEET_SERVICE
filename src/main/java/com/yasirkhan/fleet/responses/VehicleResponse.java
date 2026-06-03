@@ -1,12 +1,10 @@
 package com.yasirkhan.fleet.responses;
 
-import com.yasirkhan.fleet.models.entities.Status;
+import com.yasirkhan.fleet.models.enums.Status;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.UUID;
 
 @Data
 @Builder

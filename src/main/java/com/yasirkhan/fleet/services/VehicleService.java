@@ -1,6 +1,7 @@
 package com.yasirkhan.fleet.services;
 
 import com.yasirkhan.fleet.requests.VehicleRequest;
+import com.yasirkhan.fleet.requests.VehicleUpdateRequest;
 import com.yasirkhan.fleet.responses.VehicleResponse;
 
 import java.net.URI;
@@ -16,7 +17,7 @@ public interface VehicleService {
 
     VehicleResponse getVehicleById(String vehicleNo);
 
-    void updateVehicle(Map<String, Object> updates);
+    void updateVehicle(String vehicleNO, VehicleUpdateRequest updates);
 
     void blockVehicle(String vehicleNo, Boolean blockStatus);
 }

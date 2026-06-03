@@ -1,6 +1,7 @@
 package com.yasirkhan.fleet.services;
 
 import com.yasirkhan.fleet.requests.RouteRequest;
+import com.yasirkhan.fleet.requests.RouteUpdateRequest;
 import com.yasirkhan.fleet.responses.RouteResponse;
 
 import java.util.List;
@@ -15,7 +16,7 @@ public interface RouteService {
 
     List<RouteResponse> getAllRoutes();
 
-    void updateRoute(Map<String, Object> updates);
+    void updateRoute(UUID routeId, RouteUpdateRequest request);
 
     void blockRoute(UUID routeId, Boolean blockStatus);
 }

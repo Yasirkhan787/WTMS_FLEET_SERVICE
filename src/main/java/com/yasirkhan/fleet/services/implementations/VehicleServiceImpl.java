@@ -2,43 +2,51 @@ package com.yasirkhan.fleet.services.implementations;
 
 import com.yasirkhan.fleet.exceptions.DataBaseException;
 import com.yasirkhan.fleet.exceptions.ResourceAlreadyExistException;
+import com.yasirkhan.fleet.exceptions.ResourceNotFoundException;
 import com.yasirkhan.fleet.models.dtos.VehicleResponseEventDto;
-import com.yasirkhan.fleet.models.entities.Status;
+import com.yasirkhan.fleet.models.enums.EventStatus;
+import com.yasirkhan.fleet.models.enums.EventType;
+import com.yasirkhan.fleet.models.enums.Status;
 import com.yasirkhan.fleet.models.entities.Vehicle;
-import com.yasirkhan.fleet.producers.VehicleEventProducer;
 import com.yasirkhan.fleet.repositories.VehicleRepository;
 import com.yasirkhan.fleet.requests.VehicleRequest;
+import com.yasirkhan.fleet.requests.VehicleUpdateRequest;
 import com.yasirkhan.fleet.responses.VehicleResponse;
 import com.yasirkhan.fleet.services.VehicleService;
 import com.yasirkhan.fleet.utils.ResponseConversion;
-import jakarta.transaction.Transactional;
-import com.yasirkhan.fleet.exceptions.ResourceNotFoundException;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional(readOnly = true)
 public class VehicleServiceImpl implements VehicleService {
 
     private final VehicleRepository vehicleRepository;
+    private final ApplicationEventPublisher eventPublisher;
+    private final RedisTemplate<String, Object> redisTemplate; // Injected Redis
 
-    private final VehicleEventProducer producer;
-
-    public VehicleServiceImpl(VehicleRepository vehicleRepository, VehicleEventProducer producer) {
+    public VehicleServiceImpl(VehicleRepository vehicleRepository,
+                              ApplicationEventPublisher eventPublisher,
+                              RedisTemplate<String, Object> redisTemplate) {
         this.vehicleRepository = vehicleRepository;
-        this.producer = producer;
+        this.eventPublisher = eventPublisher;
+        this.redisTemplate = redisTemplate;
     }
 
     @Override
     @Transactional
     public VehicleResponse addVehicle(VehicleRequest request) {
-
         if (vehicleRepository.existsById(request.getVehicleNo())) {
-            throw new
-                    ResourceAlreadyExistException(
-                            "Vehicle with Vehicle No" + request.getVehicleNo() + " is Already exists");
+            throw new ResourceAlreadyExistException(
+                    "Vehicle with Vehicle No " + request.getVehicleNo() + " already exists.");
         }
 
         Vehicle vehicle = new Vehicle();
@@ -50,120 +58,77 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setRegisteredTo(request.getRegisteredTo());
         vehicle.setStatus(Status.ACTIVE);
 
-        Vehicle savedVehicle =
-                null;
         try {
-            savedVehicle = vehicleRepository.saveAndFlush(vehicle);
-            // Send event to kafka
-            VehicleResponseEventDto eventDto =
-                    VehicleResponseEventDto
-                            .builder()
-                            .vehicleNo(savedVehicle.getVehicleNo())
-                            .status("SUCCESS")
-                            .type("CREATE")
-                            .message("Vehicle added successfully")
-                            .build();
-            producer.sendVehicleResponseEvent(eventDto);
-        } catch (Exception e) {
-            throw new DataBaseException(e.getMessage());
-        }
+            Vehicle savedVehicle = vehicleRepository.saveAndFlush(vehicle);
 
-        return ResponseConversion
-                .toVehicleResponse(savedVehicle);
+            // Sync directly to local Redis cache
+            syncVehicleToRedis(savedVehicle);
+
+            VehicleResponse response = ResponseConversion.toVehicleResponse(savedVehicle);
+
+            // Broadcast so OTHER services can update their caches
+            publishVehicleEvent(EventType.CREATE, EventStatus.SUCCESS, response);
+            return response;
+
+        } catch (DataAccessException e) {
+            throw new DataBaseException("Failed to save vehicle: " + e.getMessage());
+        }
     }
 
     @Override
     @Transactional
-    public void updateVehicle(Map<String, Object> updates) {
+    public void updateVehicle(String vehicleNo, VehicleUpdateRequest request) {
+        Vehicle dbVehicle = vehicleRepository.findById(vehicleNo)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Vehicle with Vehicle No " + vehicleNo + " not found."));
 
-        String vehicleNo = updates.get("vehicleNo").toString();
-
-        Vehicle dbVehicle =
-                vehicleRepository
-                        .findById(vehicleNo)
-                        .orElseThrow(
-                                () -> new ResourceNotFoundException(
-                                        "Vehicle with Vehicle No: " + vehicleNo +" Not Found"));
-
-        updates.forEach((key, value) -> {
-            if (value == null) return; // Prevent NullPointerExceptions
-
-            switch (key){
-                case "updatedVehicleNo" -> {
-                    if (vehicleRepository.existsById(value.toString())) {
-                        throw new
-                                ResourceAlreadyExistException(
-                                "Vehicle with Vehicle No" + value.toString() + "Already exists");
-                    }
-                    dbVehicle.setVehicleNo(value.toString());
-                }
-                case "model" -> dbVehicle.setModel(value.toString());
-                case "capacity" -> dbVehicle.setCapacity(((Number) value).floatValue());
-                case "chassisNo" -> dbVehicle.setChassisNo(value.toString());
-                case "engineNo" -> dbVehicle.setEngineNo(value.toString());
-                case "registeredTo" -> dbVehicle.setRegisteredTo(value.toString());
-                case "status" -> dbVehicle.setStatus(Status.valueOf(value.toString()));
-            }
-        });
+        if (request.getModel() != null) dbVehicle.setModel(request.getModel());
+        if (request.getCapacity() != null) dbVehicle.setCapacity(request.getCapacity());
+        if (request.getChassisNo() != null) dbVehicle.setChassisNo(request.getChassisNo());
+        if (request.getEngineNo() != null) dbVehicle.setEngineNo(request.getEngineNo());
+        if (request.getRegisteredTo() != null) dbVehicle.setRegisteredTo(request.getRegisteredTo());
+        if (request.getStatus() != null) dbVehicle.setStatus(request.getStatus());
 
         try {
-            vehicleRepository.saveAndFlush(dbVehicle);
+            Vehicle updatedVehicle = vehicleRepository.saveAndFlush(dbVehicle);
 
-            // Send event to kafka
-            VehicleResponseEventDto eventDto =
-                    VehicleResponseEventDto
-                            .builder()
-                            .vehicleNo(dbVehicle.getVehicleNo())
-                            .status("SUCCESS")
-                            .type("UPDATE")
-                            .message("Vehicle updated successfully")
-                            .build();
-            producer.sendVehicleResponseEvent(eventDto);
-        } catch (Exception e) {
-            throw new DataBaseException(e.getMessage());
+            // Sync the updated state to Redis
+            syncVehicleToRedis(updatedVehicle);
+
+            VehicleResponse response = ResponseConversion.toVehicleResponse(updatedVehicle);
+            publishVehicleEvent(EventType.UPDATE, EventStatus.SUCCESS, response);
+
+        } catch (DataAccessException e) {
+            throw new DataBaseException("Failed to update vehicle: " + e.getMessage());
         }
     }
 
     @Override
+    @Transactional
     public void blockVehicle(String vehicleNo, Boolean blockStatus) {
-        Vehicle dbVehicle =
-                vehicleRepository
-                        .findById(vehicleNo)
-                        .orElseThrow(
-                                () -> new ResourceNotFoundException(
-                                        "Vehicle with Vehicle No: " + vehicleNo +"Not Found"));
+        Vehicle dbVehicle = vehicleRepository.findById(vehicleNo)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Vehicle with Vehicle No " + vehicleNo + " not found."));
 
-        String status = blockStatus ? "BLOCKED" : "ACTIVE";
-        dbVehicle.setStatus(Status.valueOf(status));
+        dbVehicle.setStatus(blockStatus ? Status.BLOCKED : Status.ACTIVE);
 
         try {
-            vehicleRepository.saveAndFlush(dbVehicle);
-            // Send event to kafka
-            VehicleResponseEventDto eventDto =
-                    VehicleResponseEventDto
-                            .builder()
-                            .vehicleNo(dbVehicle.getVehicleNo())
-                            .status(status)
-                            .type("STATUS_UPDATE")
-                            .message("Vehicle Status{ " + status + " } updated successfully")
-                            .build();
-            producer.sendVehicleResponseEvent(eventDto);
-        } catch (Exception e) {
-            throw new DataBaseException(e.getMessage());
+            Vehicle updatedVehicle = vehicleRepository.saveAndFlush(dbVehicle);
+
+            // Sync the new status to Redis
+            syncVehicleToRedis(updatedVehicle);
+
+            VehicleResponse response = ResponseConversion.toVehicleResponse(updatedVehicle);
+            publishVehicleEvent(EventType.UPDATE, EventStatus.SUCCESS, response);
+
+        } catch (DataAccessException e) {
+            throw new DataBaseException("Failed to block vehicle: " + e.getMessage());
         }
     }
 
     @Override
     public List<VehicleResponse> getAll() {
-
-        List<Vehicle> vehicles =
-                vehicleRepository.findAll();
-
-        if (vehicles.isEmpty()) {
-            throw new ResourceNotFoundException("No Vehicle Found in Database");
-        }
-
-        return vehicles
+        return vehicleRepository.findAll()
                 .stream()
                 .map(ResponseConversion::toVehicleResponse)
                 .collect(Collectors.toList());
@@ -171,15 +136,36 @@ public class VehicleServiceImpl implements VehicleService {
 
     @Override
     public VehicleResponse getVehicleById(String vehicleNo) {
-
-        Vehicle vehicle =
-                vehicleRepository
-                        .findById(vehicleNo)
-                        .orElseThrow(
-                                () -> new ResourceNotFoundException(
-                                        "Vehicle with Vehicle No: " + vehicleNo +"Not Found"));
-        return ResponseConversion
-                .toVehicleResponse(vehicle);
+        Vehicle vehicle = vehicleRepository.findById(vehicleNo)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Vehicle with Vehicle No " + vehicleNo + " not found."));
+        return ResponseConversion.toVehicleResponse(vehicle);
     }
 
+    // --- Redis Sync Helper (Vehicle) ---
+    private void syncVehicleToRedis(Vehicle vehicle) {
+        String redisKey = "wtms:vehicle:" + vehicle.getVehicleNo();
+        Map<String, Object> data = new HashMap<>();
+
+        // Convert everything to String to ensure safe cross-service serialization
+        data.put("model", vehicle.getModel());
+        data.put("capacity", String.valueOf(vehicle.getCapacity()));
+        data.put("engineNo", vehicle.getEngineNo());
+        data.put("chassisNo", vehicle.getChassisNo());
+        data.put("registeredTo", vehicle.getRegisteredTo());
+        //data.put("averageKmPerLiter", String.valueOf(vehicle.getAverageKmPerLiter()));
+        data.put("status", vehicle.getStatus().name()); // .name() is safer for Enums than .toString()
+
+        redisTemplate.opsForHash().putAll(redisKey, data);
+    }
+
+    // --- Kafka Publisher Helper ---
+    private void publishVehicleEvent(EventType type, EventStatus status, VehicleResponse data) {
+        VehicleResponseEventDto eventDto = VehicleResponseEventDto.builder()
+                .type(type)
+                .eventTypeStatus(status)
+                .vehicleData(data)
+                .build();
+        eventPublisher.publishEvent(eventDto);
+    }
 }

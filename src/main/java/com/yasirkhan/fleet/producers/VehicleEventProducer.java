@@ -21,13 +21,13 @@ public class VehicleEventProducer {
             if (ex == null) {
                 log.info("SUCCESS: Vehicle Response {} event sent for Vehicle NO: {} (Partition: {}, Offset: {})",
                         eventDto.getType(),
-                        eventDto.getVehicleNo(),
+                        eventDto.getVehicleData().getVehicleNo(),
                         result.getRecordMetadata().partition(),
                         result.getRecordMetadata().offset());
             } else {
                 log.error("FAILED to send Vehicle Response {} event for Vehicle NO: {}. Reason: {}",
                         eventDto.getType(),
-                        eventDto.getVehicleNo(),
+                        eventDto.getVehicleData().getVehicleNo(),
                         ex.getMessage());
             }
         });
