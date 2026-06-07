@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 public class VehicleUpdateRequest {
 
     private String model;
+    private String trackingId;
     private Float capacity; // Wrapper class to allow nulls
     private String engineNo;
     private String chassisNo;

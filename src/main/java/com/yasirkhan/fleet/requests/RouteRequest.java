@@ -6,12 +6,21 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Data
 public class RouteRequest {
 
     @NotBlank(message = "Route name is required")
     private String routeName;
 
+    @NotNull private UUID tehsilId;
+
+    @NotNull private UUID sourceYardId;
+
+    @NotNull private UUID destinationYardId;
+
+    /*
     @NotBlank(message = "Origin name is required")
     private String origin;
 
@@ -26,6 +35,7 @@ public class RouteRequest {
     @NotNull(message = "Destination coordinates are required")
     private CoordinateDto destinationCoords;
 
+     */
     @NotBlank(message = "Path data is required")
     private String path;
 

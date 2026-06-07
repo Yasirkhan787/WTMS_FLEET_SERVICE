@@ -5,10 +5,14 @@ import com.yasirkhan.fleet.exceptions.ResourceAlreadyExistException;
 import com.yasirkhan.fleet.exceptions.ResourceNotFoundException;
 import com.yasirkhan.fleet.models.dtos.RouteResponseEventDto;
 import com.yasirkhan.fleet.models.entities.Route;
+import com.yasirkhan.fleet.models.entities.Tehsil;
+import com.yasirkhan.fleet.models.entities.Yard;
 import com.yasirkhan.fleet.models.enums.EventStatus;
 import com.yasirkhan.fleet.models.enums.EventType;
 import com.yasirkhan.fleet.models.enums.Status;
 import com.yasirkhan.fleet.repositories.RouteRepository;
+import com.yasirkhan.fleet.repositories.TehsilRepository;
+import com.yasirkhan.fleet.repositories.YardRepository;
 import com.yasirkhan.fleet.requests.RouteRequest;
 import com.yasirkhan.fleet.requests.RouteUpdateRequest;
 import com.yasirkhan.fleet.responses.RouteResponse;
@@ -33,13 +37,17 @@ import java.util.stream.Collectors;
 public class RouteServiceImpl implements RouteService {
 
     private final RouteRepository routeRepository;
+    private final TehsilRepository tehsilRepository;
+    private final YardRepository yardRepository;
     private final ApplicationEventPublisher eventPublisher;
-    private final RedisTemplate<String, Object> redisTemplate; // Injected Redis
+    private final RedisTemplate<String, Object> redisTemplate;
 
-    public RouteServiceImpl(RouteRepository routeRepository,
+    public RouteServiceImpl(RouteRepository routeRepository, TehsilRepository tehsilRepository, YardRepository yardRepository,
                             ApplicationEventPublisher eventPublisher,
                             RedisTemplate<String, Object> redisTemplate) {
         this.routeRepository = routeRepository;
+        this.tehsilRepository = tehsilRepository;
+        this.yardRepository = yardRepository;
         this.eventPublisher = eventPublisher;
         this.redisTemplate = redisTemplate;
     }
@@ -47,6 +55,14 @@ public class RouteServiceImpl implements RouteService {
     @Override
     @Transactional
     public RouteResponse addRoute(RouteRequest request) {
+
+        Tehsil tehsil = tehsilRepository.findById(request.getTehsilId())
+                .orElseThrow(() -> new ResourceNotFoundException("Tehsil not found"));
+        Yard source = yardRepository.findById(request.getSourceYardId())
+                .orElseThrow(() -> new ResourceNotFoundException("Source yard not found"));
+        Yard dest = yardRepository.findById(request.getDestinationYardId())
+                .orElseThrow(() -> new ResourceNotFoundException("Destination yard not found"));
+
         LineString path = SpatialUtils.toLineString(request.getPath());
 
         if (routeRepository.existsByPathEquals(path)) {
@@ -54,13 +70,10 @@ public class RouteServiceImpl implements RouteService {
         }
 
         Route route = new Route();
+        route.setTehsil(tehsil);
+        route.setSourceYard(source);
+        route.setDestinationYard(dest);
         route.setRouteName(request.getRouteName());
-        route.setOrigin(request.getOrigin());
-        route.setOriginLat(request.getOriginCoords().getLat());
-        route.setOriginLng(request.getOriginCoords().getLng());
-        route.setDestination(request.getDestination());
-        route.setDestinationLat(request.getDestinationCoords().getLat());
-        route.setDestinationLng(request.getDestinationCoords().getLng());
         route.setPath(path);
         route.setEstimatedTime(request.getEstimatedTime());
         route.setEstimatedDistance(request.getEstimatedDistance());
@@ -69,7 +82,6 @@ public class RouteServiceImpl implements RouteService {
         try {
             Route savedRoute = routeRepository.saveAndFlush(route);
 
-            // Sync directly to local Redis cache
             syncRouteToRedis(savedRoute);
 
             RouteResponse response = ResponseConversion.toRouteResponse(savedRoute);
@@ -90,16 +102,25 @@ public class RouteServiceImpl implements RouteService {
                 .orElseThrow(() -> new ResourceNotFoundException("Route with ID: " + routeId + " Not Found"));
 
         if (request.getRouteName() != null) dbRoute.setRouteName(request.getRouteName());
-        if (request.getOrigin() != null) dbRoute.setOrigin(request.getOrigin());
-        if (request.getOriginCoords() != null) {
-            dbRoute.setOriginLat(request.getOriginCoords().getLat());
-            dbRoute.setOriginLng(request.getOriginCoords().getLng());
+
+        if (request.getTehsilId() != null) {
+            Tehsil tehsil = tehsilRepository.findById(request.getTehsilId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Tehsil not found"));
+            dbRoute.setTehsil(tehsil);
         }
-        if (request.getDestination() != null) dbRoute.setDestination(request.getDestination());
-        if (request.getDestinationCoords() != null) {
-            dbRoute.setDestinationLat(request.getDestinationCoords().getLat());
-            dbRoute.setDestinationLng(request.getDestinationCoords().getLng());
+
+        if (request.getSourceYardId() != null) {
+            Yard source = yardRepository.findById(request.getSourceYardId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Source Yard not found"));
+            dbRoute.setSourceYard(source);
         }
+
+        if (request.getDestinationYardId() != null) {
+            Yard dest = yardRepository.findById(request.getDestinationYardId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Dest Yard not found"));
+            dbRoute.setDestinationYard(dest);
+        }
+
         if (request.getPath() != null) {
             LineString newPath = SpatialUtils.toLineString(request.getPath());
             if (routeRepository.existsByPathEquals(newPath)) {
@@ -107,6 +128,7 @@ public class RouteServiceImpl implements RouteService {
             }
             dbRoute.setPath(newPath);
         }
+
         if (request.getEstimatedTime() != null) dbRoute.setEstimatedTime(request.getEstimatedTime());
         if (request.getEstimatedDistance() != null) dbRoute.setEstimatedDistance(request.getEstimatedDistance());
         if (request.getStatus() != null) dbRoute.setStatus(request.getStatus());
@@ -114,10 +136,10 @@ public class RouteServiceImpl implements RouteService {
         try {
             Route updatedRoute = routeRepository.saveAndFlush(dbRoute);
 
-            // Sync the updated state to Redis
             syncRouteToRedis(updatedRoute);
 
             RouteResponse response = ResponseConversion.toRouteResponse(updatedRoute);
+
             publishRouteEvent(EventType.UPDATE, EventStatus.SUCCESS, response);
         } catch (DataAccessException e) {
             throw new DataBaseException("Failed to update route: " + e.getMessage());
@@ -166,12 +188,9 @@ public class RouteServiceImpl implements RouteService {
         Map<String, Object> data = new HashMap<>();
 
         data.put("routeName", route.getRouteName());
-        data.put("origin", route.getOrigin());
-        data.put("originLat", String.valueOf(route.getOriginLat()));
-        data.put("originLng", String.valueOf(route.getOriginLng()));
-        data.put("destination", route.getDestination());
-        data.put("destinationLat", String.valueOf(route.getDestinationLat()));
-        data.put("destinationLng", String.valueOf(route.getDestinationLng()));
+        data.put("tehsilId", route.getTehsil().getTehsilId().toString());
+        data.put("sourceYardId", route.getSourceYard().getId().toString());
+        data.put("destinationYardId", route.getDestinationYard().getId().toString());
 
         // Convert PostGIS LineString to standard Well-Known Text (WKT) string
         if (route.getPath() != null) {

@@ -17,6 +17,9 @@ public class Vehicle {
     private String vehicleNo;
 
     @Column(nullable = false)
+    private String trackingId;
+
+    @Column(nullable = false)
     private String model;
 
     @Column(nullable = false)

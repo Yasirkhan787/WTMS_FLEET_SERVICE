@@ -13,6 +13,6 @@ import java.util.UUID;
 public interface RouteRepository extends JpaRepository<Route, UUID> {
 
     // Check if the exact geometric path already exists
-    @Query(value = "SELECT EXISTS(SELECT 1 FROM wtms_routes WHERE ST_Equals(path, :path))", nativeQuery = true)
+    @Query(value = "SELECT EXISTS(SELECT 1 FROM wtms_route WHERE ST_Equals(path, :path))", nativeQuery = true)
     boolean existsByPathEquals(@Param("path") LineString path);
 }

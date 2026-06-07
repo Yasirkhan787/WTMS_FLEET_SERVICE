@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 public class VehicleResponse {
 
     private String vehicleNo;
+    private String trackingId;
     private String model;
     private float capacity;
     private String engineNo;

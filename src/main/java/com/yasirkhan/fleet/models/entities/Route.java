@@ -2,18 +2,14 @@ package com.yasirkhan.fleet.models.entities;
 
 import com.yasirkhan.fleet.models.enums.Status;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.locationtech.jts.geom.LineString;
 
 import java.util.UUID;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
-@Table(name = "WTMS_ROUTES")
+@Table(name = "WTMS_ROUTE")
+@Data
 public class Route {
 
     @Id
@@ -21,26 +17,21 @@ public class Route {
     private UUID routeId;
 
     @Column(nullable = false)
-    private String routeName;
+    private String routeName; // e.g., "G7 to Losar Fast Track"
 
-    @Column(nullable = false)
-    private String origin;
+    // The Territory this route belongs to
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tehsil_id", nullable = false)
+    private Tehsil tehsil;
 
-    // Store the exact pin coordinates
-    @Column(nullable = false)
-    private Double originLat;
+    // The Specific Yards
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_yard_id", nullable = false)
+    private Yard sourceYard;
 
-    @Column(nullable = false)
-    private Double originLng;
-
-    @Column(nullable = false)
-    private String destination;
-
-    @Column(nullable = false)
-    private Double destinationLat;
-
-    @Column(nullable = false)
-    private Double destinationLng;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "destination_yard_id", nullable = false)
+    private Yard destinationYard;
 
     @Column(nullable = false)
     private LineString path;

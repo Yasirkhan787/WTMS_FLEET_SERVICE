@@ -24,9 +24,34 @@ public class KafkaProducerConfig {
     }
 
     @Bean
+    public NewTopic createRouteResponseTopic(){
+        return new NewTopic("route-response-topic", 2, (short) 1);
+    }
+
+    @Bean
+    public NewTopic createTehsilResponseTopic(){
+        return new NewTopic("tehsil-response-topic", 2, (short) 1);
+    }
+
+    @Bean
+    public NewTopic createYardResponseTopic(){
+        return new NewTopic("yard-response-topic", 2, (short) 1);
+    }
+
+
+    @Bean
+    public NewTopic createDailyGoalResponseTopic(){
+        return new NewTopic("daily-goal-response-topic", 2, (short) 1);
+    }
+
+
+    @Bean
     public NewTopic createVehicleResponseTopic(){
         return new NewTopic("vehicle-response-topic", 2, (short) 1);
     }
+
+
+
 
     @Bean
     public Map<String, Object> producerConfig(){

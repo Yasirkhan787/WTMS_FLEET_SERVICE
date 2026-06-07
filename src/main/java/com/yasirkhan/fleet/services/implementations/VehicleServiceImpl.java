@@ -51,6 +51,7 @@ public class VehicleServiceImpl implements VehicleService {
 
         Vehicle vehicle = new Vehicle();
         vehicle.setVehicleNo(request.getVehicleNo());
+        vehicle.setTrackingId(request.getTrackingId());
         vehicle.setModel(request.getModel());
         vehicle.setCapacity(request.getCapacity());
         vehicle.setChassisNo(request.getChassisNo());
@@ -82,6 +83,7 @@ public class VehicleServiceImpl implements VehicleService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Vehicle with Vehicle No " + vehicleNo + " not found."));
 
+        if (request.getTrackingId() != null) dbVehicle.setTrackingId(request.getTrackingId());
         if (request.getModel() != null) dbVehicle.setModel(request.getModel());
         if (request.getCapacity() != null) dbVehicle.setCapacity(request.getCapacity());
         if (request.getChassisNo() != null) dbVehicle.setChassisNo(request.getChassisNo());
