@@ -194,7 +194,7 @@ public class RouteServiceImpl implements RouteService {
 
         // Convert PostGIS LineString to standard Well-Known Text (WKT) string
         if (route.getPath() != null) {
-            data.put("path", route.getPath().toString());
+            data.put("path", SpatialUtils.toPolyLine(route.getPath()));
         }
 
         data.put("estimatedDistance", String.valueOf(route.getEstimatedDistance()));

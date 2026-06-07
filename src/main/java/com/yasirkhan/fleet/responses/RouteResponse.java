@@ -19,7 +19,7 @@ public class RouteResponse {
     private UUID destinationYardId;
     private String destinationYardType;
     private String destinationYardName;
-    private String path; // The GeoJSON string
+    private String path;
     private String estimatedDistance;
     private String estimatedTime;
     private String status;

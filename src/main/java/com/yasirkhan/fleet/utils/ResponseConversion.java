@@ -26,7 +26,6 @@ public class ResponseConversion {
                         .build();
     }
 
-    // Inside your Fleet Service ResponseConversion.java
     public static RouteResponse toRouteResponse(Route route) {
         RouteResponse.RouteResponseBuilder builder = RouteResponse.builder()
                 .routeId(route.getRouteId())
@@ -36,16 +35,17 @@ public class ResponseConversion {
                 .estimatedTime(route.getEstimatedTime())
                 .path(route.getPath() != null ? SpatialUtils.toPolyLine(route.getPath()) : null);
 
-        // Properly map the relationships
         if (route.getTehsil() != null) {
             builder.tehsilId(route.getTehsil().getTehsilId());
             builder.tehsilName(route.getTehsil().getTehsilName());
         }
+
         if (route.getSourceYard() != null) {
             builder.sourceYardId(route.getSourceYard().getId());
             builder.sourceYardName(route.getSourceYard().getYardName());
             builder.sourceYardType(String.valueOf(route.getSourceYard().getYardType()));
         }
+
         if (route.getDestinationYard() != null) {
             builder.destinationYardId(route.getDestinationYard().getId());
             builder.destinationYardName(route.getDestinationYard().getYardName());
@@ -73,13 +73,11 @@ public class ResponseConversion {
                 .yardType(yard.getYardType().name())
                 .status(yard.getStatus().name());
 
-        // ADDED TEHSIL MAPPING HERE:
         if (yard.getTehsil() != null) {
             builder.tehsilId(yard.getTehsil().getTehsilId());
             builder.tehsilName(yard.getTehsil().getTehsilName());
         }
 
-        // Check which geometry type exists in the database
         if (yard.getCenterPoint() != null) {
             builder.boundaryType("RADIUS");
             builder.radiusMeters(yard.getRadiusMeters());
@@ -95,12 +93,11 @@ public class ResponseConversion {
         return builder.build();
     }
 
-    // Inside your ResponseConversion class in Fleet Service
     public static DailyGoalResponse toDailyGoalResponse(DailyGoal goal) {
         return DailyGoalResponse.builder()
                 .goalId(goal.getGoalId())
-                .tehsilId(goal.getTehsil().getTehsilId()) // Extract from the linked Tehsil entity
-                .tehsilName(goal.getTehsil().getTehsilName()) // Pass name to frontend
+                .tehsilId(goal.getTehsil().getTehsilId())
+                .tehsilName(goal.getTehsil().getTehsilName())
                 .targetDate(goal.getTargetDate())
                 .targetTonnage(goal.getTargetTonnage())
                 .assignedBy(goal.getAssignedBy())
