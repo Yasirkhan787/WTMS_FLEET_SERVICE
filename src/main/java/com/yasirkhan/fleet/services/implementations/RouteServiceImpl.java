@@ -198,11 +198,9 @@ public class RouteServiceImpl implements RouteService {
         List<Route> dbRoutes;
 
         if ("ADMIN".equals(role)) {
-            // Admin sees all routes globally
             dbRoutes = routeRepository.findAll();
 
         } else if ("SUPERVISOR".equals(role)) {
-            // Supervisor sees only routes assigned to their Tehsil
             String tehsilId = (String) redisTemplate.opsForHash().get("wtms:user:" + userId, "tehsilId");
             if (tehsilId == null || tehsilId.isEmpty()) {
                 throw new ResourceNotFoundException("No territory assigned to this supervisor.");
@@ -220,7 +218,7 @@ public class RouteServiceImpl implements RouteService {
                 .collect(Collectors.toList());
     }
 
-    // --- Redis Sync Helper (Route) ---
+    // Helper Methods
     private void syncRouteToRedis(Route route) {
         String redisKey = "wtms:route:" + route.getRouteId().toString();
         Map<String, Object> data = new HashMap<>();
