@@ -3,6 +3,7 @@ package com.yasirkhan.fleet.services.implementations;
 import com.yasirkhan.fleet.exceptions.DataBaseException;
 import com.yasirkhan.fleet.exceptions.ResourceAlreadyExistException;
 import com.yasirkhan.fleet.exceptions.ResourceNotFoundException;
+import com.yasirkhan.fleet.models.UserPrincipal;
 import com.yasirkhan.fleet.models.dtos.RouteResponseEventDto;
 import com.yasirkhan.fleet.models.entities.Route;
 import com.yasirkhan.fleet.models.entities.Tehsil;
@@ -19,10 +20,13 @@ import com.yasirkhan.fleet.responses.RouteResponse;
 import com.yasirkhan.fleet.services.RouteService;
 import com.yasirkhan.fleet.utils.ResponseConversion;
 import com.yasirkhan.fleet.utils.SpatialUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.LineString;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,8 +62,10 @@ public class RouteServiceImpl implements RouteService {
 
         Tehsil tehsil = tehsilRepository.findById(request.getTehsilId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tehsil not found"));
+
         Yard source = yardRepository.findById(request.getSourceYardId())
                 .orElseThrow(() -> new ResourceNotFoundException("Source yard not found"));
+
         Yard dest = yardRepository.findById(request.getDestinationYardId())
                 .orElseThrow(() -> new ResourceNotFoundException("Destination yard not found"));
 
@@ -175,9 +181,41 @@ public class RouteServiceImpl implements RouteService {
         return ResponseConversion.toRouteResponse(dbRoute);
     }
 
+
     @Override
     public List<RouteResponse> getAllRoutes() {
-        return routeRepository.findAll().stream()
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new RuntimeException("Unauthorized: No valid session found.");
+        }
+
+        // Extracting user details using your UserPrincipal syntax
+        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+        String userId = principal.userId();
+        String role = principal.role();
+
+        List<Route> dbRoutes;
+
+        if ("ADMIN".equals(role)) {
+            // Admin sees all routes globally
+            dbRoutes = routeRepository.findAll();
+
+        } else if ("SUPERVISOR".equals(role)) {
+            // Supervisor sees only routes assigned to their Tehsil
+            String tehsilId = (String) redisTemplate.opsForHash().get("wtms:user:" + userId, "tehsilId");
+            if (tehsilId == null || tehsilId.isEmpty()) {
+                throw new ResourceNotFoundException("No territory assigned to this supervisor.");
+            }
+
+            dbRoutes = routeRepository.findByTehsil_TehsilId(UUID.fromString(tehsilId));
+
+        } else {
+            // Block any other roles (like DRIVER) from viewing routes
+            throw new RuntimeException("You do not have permission to view routes.");
+        }
+
+        return dbRoutes.stream()
                 .map(ResponseConversion::toRouteResponse)
                 .collect(Collectors.toList());
     }

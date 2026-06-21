@@ -18,7 +18,7 @@ public class TehsilEventProducer {
 
     // Send Yard Created/Updated Response Event
     public void sendRouteResponseEvent(TehsilResponseEventDto eventDto) {
-        kafkaTemplate.send("yard-response-topic", eventDto).whenComplete((result, ex) -> {
+        kafkaTemplate.send("tehsil-response-topic", eventDto).whenComplete((result, ex) -> {
             if (ex == null) {
                 log.info("SUCCESS: Tehsil Response {} event sent for Tehsil Id: {} (Partition: {}, Offset: {})",
                         eventDto.getType(),

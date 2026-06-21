@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -19,5 +21,7 @@ public class VehicleResponse {
     private String engineNo;
     private String chassisNo;
     private String registeredTo;
+    private UUID tehsilId;
+    private String tehsilName;
     private Status status;
 }

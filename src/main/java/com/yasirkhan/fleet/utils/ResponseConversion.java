@@ -12,18 +12,22 @@ public class ResponseConversion {
 
     public static VehicleResponse toVehicleResponse(Vehicle savedVehicle) {
 
-        return
-                VehicleResponse
-                        .builder()
-                        .vehicleNo(savedVehicle.getVehicleNo())
-                        .trackingId(savedVehicle.getTrackingId())
-                        .model(savedVehicle.getModel())
-                        .capacity(savedVehicle.getCapacity())
-                        .chassisNo(savedVehicle.getChassisNo())
-                        .engineNo(savedVehicle.getEngineNo())
-                        .registeredTo(savedVehicle.getRegisteredTo())
-                        .status(savedVehicle.getStatus())
-                        .build();
+        VehicleResponse.VehicleResponseBuilder response = VehicleResponse.builder()
+                .vehicleNo(savedVehicle.getVehicleNo())
+                .trackingId(savedVehicle.getTrackingId())
+                .model(savedVehicle.getModel())
+                .capacity(savedVehicle.getCapacity())
+                .chassisNo(savedVehicle.getChassisNo())
+                .engineNo(savedVehicle.getEngineNo())
+                .registeredTo(savedVehicle.getRegisteredTo())
+                .status(savedVehicle.getStatus());
+
+        if (savedVehicle.getTehsil() != null) {
+            response.tehsilId(savedVehicle.getTehsil().getTehsilId());
+            response.tehsilName(savedVehicle.getTehsil().getTehsilName());
+        }
+
+        return response.build();
     }
 
     public static RouteResponse toRouteResponse(Route route) {
@@ -54,15 +58,23 @@ public class ResponseConversion {
         return builder.build();
     }
 
+//    public static TehsilResponse toTehsilResponse(Tehsil tehsil) {
+//        return TehsilResponse.builder()
+//                .tehsilId(tehsil.getTehsilId())
+//                .tehsilName(tehsil.getTehsilName())
+//                .yards(tehsil.getYards() != null ?
+//                        tehsil.getYards().stream()
+//                                .map(ResponseConversion::toYardResponse)
+//                                .collect(Collectors.toList())
+//                        : null)
+//                .build();
+//    }
+
     public static TehsilResponse toTehsilResponse(Tehsil tehsil) {
         return TehsilResponse.builder()
                 .tehsilId(tehsil.getTehsilId())
                 .tehsilName(tehsil.getTehsilName())
-                .yards(tehsil.getYards() != null ?
-                        tehsil.getYards().stream()
-                                .map(ResponseConversion::toYardResponse)
-                                .collect(Collectors.toList())
-                        : null)
+                .status(tehsil.getStatus().name())
                 .build();
     }
 

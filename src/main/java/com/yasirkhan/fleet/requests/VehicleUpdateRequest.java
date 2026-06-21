@@ -1,10 +1,13 @@
 package com.yasirkhan.fleet.requests;
 
 import com.yasirkhan.fleet.models.enums.Status;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.UUID;
 
 @Data
 @Builder
@@ -18,5 +21,7 @@ public class VehicleUpdateRequest {
     private String engineNo;
     private String chassisNo;
     private String registeredTo;
+    @NotNull
+    private UUID tehsilId;
     private Status status;
 }

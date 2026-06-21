@@ -37,4 +37,8 @@ public class Vehicle {
     @Enumerated(EnumType.STRING)
     private Status status;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tehsil_id", nullable = true)
+    private Tehsil tehsil;
+
 }

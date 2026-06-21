@@ -2,22 +2,31 @@ package com.yasirkhan.fleet.services.implementations;
 
 import com.yasirkhan.fleet.exceptions.DataBaseException;
 import com.yasirkhan.fleet.exceptions.ResourceNotFoundException;
+import com.yasirkhan.fleet.models.dtos.TehsilResponseEventDto;
+import com.yasirkhan.fleet.models.dtos.YardResponseEventDto;
 import com.yasirkhan.fleet.models.entities.Tehsil;
 import com.yasirkhan.fleet.models.entities.Yard;
+import com.yasirkhan.fleet.models.enums.EventStatus;
+import com.yasirkhan.fleet.models.enums.EventType;
 import com.yasirkhan.fleet.models.enums.Status;
 import com.yasirkhan.fleet.repositories.TehsilRepository;
 import com.yasirkhan.fleet.repositories.YardRepository;
 import com.yasirkhan.fleet.requests.YardRequest;
 import com.yasirkhan.fleet.requests.YardUpdateRequest;
+import com.yasirkhan.fleet.responses.TehsilResponse;
 import com.yasirkhan.fleet.responses.YardResponse;
 import com.yasirkhan.fleet.services.YardService;
 import com.yasirkhan.fleet.utils.ResponseConversion;
 import com.yasirkhan.fleet.utils.SpatialUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -27,10 +36,12 @@ public class YardServiceImpl implements YardService {
 
     private final YardRepository yardRepository;
     private final TehsilRepository tehsilRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public YardServiceImpl(YardRepository yardRepository, TehsilRepository tehsilRepository) {
+    public YardServiceImpl(YardRepository yardRepository, TehsilRepository tehsilRepository, ApplicationEventPublisher eventPublisher) {
         this.yardRepository = yardRepository;
         this.tehsilRepository = tehsilRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -48,7 +59,12 @@ public class YardServiceImpl implements YardService {
                 request.getRadiusMeters(), request.getPolygonPath());
 
         try {
-            return ResponseConversion.toYardResponse(yardRepository.saveAndFlush(yard));
+
+            YardResponse response = ResponseConversion.toYardResponse(yardRepository.saveAndFlush(yard));
+
+            publishYardEvent(EventType.CREATE, EventStatus.SUCCESS, response);
+
+            return response;
         } catch (DataAccessException e) {
             throw new DataBaseException("Failed to add yard: " + e.getMessage());
         }
@@ -120,5 +136,16 @@ public class YardServiceImpl implements YardService {
         } else {
             throw new IllegalArgumentException("Boundary type must be exactly RADIUS or POLYGON");
         }
+    }
+
+    // Helper Method
+    private void publishYardEvent(EventType type, EventStatus status, YardResponse response) {
+        YardResponseEventDto eventDto = YardResponseEventDto.builder()
+                .type(type)
+                .eventTypeStatus(status)
+                .yardData(response)
+                .build();
+
+        eventPublisher.publishEvent(eventDto);
     }
 }

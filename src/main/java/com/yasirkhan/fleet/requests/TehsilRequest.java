@@ -6,5 +6,6 @@ import lombok.Data;
 @Data
 public class TehsilRequest {
     @NotBlank(message = "Tehsil name is required")
-    private String tehsilName; // e.g., "Potohar Town"
+    private String tehsilName;
+
 }

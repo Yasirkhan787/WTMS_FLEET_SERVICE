@@ -1,12 +1,15 @@
 package com.yasirkhan.fleet.controllers;
 
+import com.yasirkhan.fleet.models.entities.Tehsil;
 import com.yasirkhan.fleet.requests.TehsilRequest;
+import com.yasirkhan.fleet.requests.VehicleUpdateRequest;
 import com.yasirkhan.fleet.responses.TehsilResponse;
 import com.yasirkhan.fleet.responses.TehsilWithYardsResponse;
 import com.yasirkhan.fleet.services.TehsilService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,13 +29,30 @@ public class TehsilController {
      * Admin Action: Create a new territory (Tehsil)
      */
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<TehsilResponse> createTehsil(@Valid @RequestBody TehsilRequest request) {
         TehsilResponse response = tehsilService.createTehsil(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    // Update Tehsil
+    @PatchMapping("/{tehsilId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> updateTehsil(@PathVariable UUID tehsilId, @RequestBody TehsilRequest updates) {
+        tehsilService.updateTehsil(tehsilId, updates);
+        return new ResponseEntity<>("Tehsil with Tehsil Id: " + tehsilId + " Updated Successfully", HttpStatus.NO_CONTENT);
+    }
+
+    // Block Tehsil
+    @PatchMapping("/block/{tehsilId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> blockTehsil(@PathVariable UUID tehsilId, @RequestParam Boolean blockStatus ) {
+        tehsilService.blockTehsil(tehsilId, blockStatus);
+        return new ResponseEntity<>("Tehsil with Tehsil Id: " + tehsilId + " Blocked Successfully", HttpStatus.NO_CONTENT);
+    }
+
     /**
-     * System Action: Get all Tehsils (Used to populate UI dropdowns)
+     * System Action: Get all Tehsils
      */
     @GetMapping
     public ResponseEntity<List<TehsilResponse>> getAllTehsils() {

@@ -16,4 +16,8 @@ public interface TehsilService {
     TehsilResponse getTehsilById(UUID tehsilId);
 
     List<TehsilWithYardsResponse> getAllTehsilsWithYards();
+
+    void updateTehsil(UUID tehsilId, TehsilRequest updates);
+
+    void blockTehsil(UUID tehsilId, Boolean blockStatus);
 }

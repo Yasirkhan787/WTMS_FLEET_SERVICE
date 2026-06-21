@@ -4,16 +4,19 @@ import com.yasirkhan.fleet.exceptions.DataBaseException;
 import com.yasirkhan.fleet.exceptions.ResourceAlreadyExistException;
 import com.yasirkhan.fleet.exceptions.ResourceNotFoundException;
 import com.yasirkhan.fleet.models.dtos.VehicleResponseEventDto;
+import com.yasirkhan.fleet.models.entities.Tehsil;
 import com.yasirkhan.fleet.models.enums.EventStatus;
 import com.yasirkhan.fleet.models.enums.EventType;
 import com.yasirkhan.fleet.models.enums.Status;
 import com.yasirkhan.fleet.models.entities.Vehicle;
+import com.yasirkhan.fleet.repositories.TehsilRepository;
 import com.yasirkhan.fleet.repositories.VehicleRepository;
 import com.yasirkhan.fleet.requests.VehicleRequest;
 import com.yasirkhan.fleet.requests.VehicleUpdateRequest;
 import com.yasirkhan.fleet.responses.VehicleResponse;
 import com.yasirkhan.fleet.services.VehicleService;
 import com.yasirkhan.fleet.utils.ResponseConversion;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -25,18 +28,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 public class VehicleServiceImpl implements VehicleService {
 
     private final VehicleRepository vehicleRepository;
+    private final TehsilRepository tehsilRepository;
     private final ApplicationEventPublisher eventPublisher;
-    private final RedisTemplate<String, Object> redisTemplate; // Injected Redis
+    private final RedisTemplate<String, Object> redisTemplate;
 
-    public VehicleServiceImpl(VehicleRepository vehicleRepository,
+    public VehicleServiceImpl(VehicleRepository vehicleRepository, TehsilRepository tehsilRepository,
                               ApplicationEventPublisher eventPublisher,
                               RedisTemplate<String, Object> redisTemplate) {
         this.vehicleRepository = vehicleRepository;
+        this.tehsilRepository = tehsilRepository;
         this.eventPublisher = eventPublisher;
         this.redisTemplate = redisTemplate;
     }
@@ -44,10 +50,15 @@ public class VehicleServiceImpl implements VehicleService {
     @Override
     @Transactional
     public VehicleResponse addVehicle(VehicleRequest request) {
+
+        log.info("Vehicle Req: {}", request);
         if (vehicleRepository.existsById(request.getVehicleNo())) {
             throw new ResourceAlreadyExistException(
                     "Vehicle with Vehicle No " + request.getVehicleNo() + " already exists.");
         }
+
+        Tehsil tehsil = tehsilRepository.findById(request.getTehsilId())
+                .orElseThrow(() -> new ResourceNotFoundException("Tehsil not found"));
 
         Vehicle vehicle = new Vehicle();
         vehicle.setVehicleNo(request.getVehicleNo());
@@ -57,18 +68,19 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setChassisNo(request.getChassisNo());
         vehicle.setEngineNo(request.getEngineNo());
         vehicle.setRegisteredTo(request.getRegisteredTo());
+        // vehicle.setMileage(request.getMileage()); // AverageKmPerLiter
+        vehicle.setTehsil(tehsil);
         vehicle.setStatus(Status.ACTIVE);
 
         try {
             Vehicle savedVehicle = vehicleRepository.saveAndFlush(vehicle);
 
-            // Sync directly to local Redis cache
             syncVehicleToRedis(savedVehicle);
 
             VehicleResponse response = ResponseConversion.toVehicleResponse(savedVehicle);
 
-            // Broadcast so OTHER services can update their caches
             publishVehicleEvent(EventType.CREATE, EventStatus.SUCCESS, response);
+
             return response;
 
         } catch (DataAccessException e) {
@@ -82,6 +94,12 @@ public class VehicleServiceImpl implements VehicleService {
         Vehicle dbVehicle = vehicleRepository.findById(vehicleNo)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Vehicle with Vehicle No " + vehicleNo + " not found."));
+
+        if (request.getTehsilId() != null) {
+            Tehsil tehsil = tehsilRepository.findById(request.getTehsilId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Tehsil not found"));
+            dbVehicle.setTehsil(tehsil);
+        }
 
         if (request.getTrackingId() != null) dbVehicle.setTrackingId(request.getTrackingId());
         if (request.getModel() != null) dbVehicle.setModel(request.getModel());
@@ -128,6 +146,7 @@ public class VehicleServiceImpl implements VehicleService {
         }
     }
 
+    // Get All Vehicles
     @Override
     public List<VehicleResponse> getAll() {
         return vehicleRepository.findAll()
@@ -136,6 +155,7 @@ public class VehicleServiceImpl implements VehicleService {
                 .collect(Collectors.toList());
     }
 
+    // Get Vehicle By ID
     @Override
     public VehicleResponse getVehicleById(String vehicleNo) {
         Vehicle vehicle = vehicleRepository.findById(vehicleNo)
@@ -144,24 +164,23 @@ public class VehicleServiceImpl implements VehicleService {
         return ResponseConversion.toVehicleResponse(vehicle);
     }
 
-    // --- Redis Sync Helper (Vehicle) ---
+    // Helper Methods
     private void syncVehicleToRedis(Vehicle vehicle) {
         String redisKey = "wtms:vehicle:" + vehicle.getVehicleNo();
         Map<String, Object> data = new HashMap<>();
 
-        // Convert everything to String to ensure safe cross-service serialization
         data.put("model", vehicle.getModel());
         data.put("capacity", String.valueOf(vehicle.getCapacity()));
         data.put("engineNo", vehicle.getEngineNo());
         data.put("chassisNo", vehicle.getChassisNo());
         data.put("registeredTo", vehicle.getRegisteredTo());
-        //data.put("averageKmPerLiter", String.valueOf(vehicle.getAverageKmPerLiter()));
-        data.put("status", vehicle.getStatus().name()); // .name() is safer for Enums than .toString()
+        data.put("tehsilId", String.valueOf(vehicle.getTehsil().getTehsilId()));
+        //data.put("mileage", String.valueOf(vehicle.getMileage()));   // AverageKmPerLiter
+        data.put("status", vehicle.getStatus().name());
 
         redisTemplate.opsForHash().putAll(redisKey, data);
     }
 
-    // --- Kafka Publisher Helper ---
     private void publishVehicleEvent(EventType type, EventStatus status, VehicleResponse data) {
         VehicleResponseEventDto eventDto = VehicleResponseEventDto.builder()
                 .type(type)

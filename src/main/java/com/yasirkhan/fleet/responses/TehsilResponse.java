@@ -10,8 +10,5 @@ import java.util.UUID;
 public class TehsilResponse {
     private UUID tehsilId;
     private String tehsilName;
-
-    // Optional: Returning the list of yards inside the Tehsil is incredibly
-    // helpful for the frontend to build dropdown menus!
-    private List<YardResponse> yards;
+    private String status;
 }

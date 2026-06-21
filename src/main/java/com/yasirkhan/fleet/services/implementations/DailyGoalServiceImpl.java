@@ -98,7 +98,7 @@ public class DailyGoalServiceImpl implements DailyGoalService {
                 .collect(Collectors.toList());
     }
 
-    // --- CROSS-SERVICE HELPER ---
+    // Helper Methods
     @Override
     public Double getTargetTonnage(UUID tehsilId, LocalDate date) {
         return dailyGoalRepository.findByTehsil_TehsilIdAndTargetDate(tehsilId, date)
@@ -106,7 +106,6 @@ public class DailyGoalServiceImpl implements DailyGoalService {
                 .orElse(0.0);
     }
 
-    // --- Redis Sync Helper (Daily Goals ) ---
     private void syncGoalToRedis(DailyGoal goal) {
 
         String redisKey = "wtms:goal:" + goal.getGoalId().toString();
@@ -119,7 +118,6 @@ public class DailyGoalServiceImpl implements DailyGoalService {
         redisTemplate.opsForHash().putAll(redisKey, data);
     }
 
-    // --- Kafka Publisher Helper ---
     private void publishGoalEvent(EventType type, EventStatus status, DailyGoalResponse response) {
 
         DailyGoalResponseEventDto eventDto = DailyGoalResponseEventDto.builder()
