@@ -21,6 +21,7 @@ public class VehicleRequest {
     private String engineNo;
     private String chassisNo;
     private String registeredTo;
+    private double mileage;
     @NotNull
     private UUID tehsilId;
 }

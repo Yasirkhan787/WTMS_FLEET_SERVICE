@@ -21,6 +21,7 @@ public class VehicleUpdateRequest {
     private String engineNo;
     private String chassisNo;
     private String registeredTo;
+    private Double mileage;
     @NotNull
     private UUID tehsilId;
     private Status status;

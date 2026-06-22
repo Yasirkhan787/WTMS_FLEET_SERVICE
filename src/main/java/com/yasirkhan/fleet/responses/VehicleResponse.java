@@ -23,5 +23,6 @@ public class VehicleResponse {
     private String registeredTo;
     private UUID tehsilId;
     private String tehsilName;
+    private double mileage;
     private Status status;
 }

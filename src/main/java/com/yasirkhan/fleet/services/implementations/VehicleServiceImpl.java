@@ -68,7 +68,7 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setChassisNo(request.getChassisNo());
         vehicle.setEngineNo(request.getEngineNo());
         vehicle.setRegisteredTo(request.getRegisteredTo());
-        // vehicle.setMileage(request.getMileage()); // AverageKmPerLiter
+        vehicle.setMileage(request.getMileage()); // AverageKmPerLiter
         vehicle.setTehsil(tehsil);
         vehicle.setStatus(Status.ACTIVE);
 
@@ -107,6 +107,7 @@ public class VehicleServiceImpl implements VehicleService {
         if (request.getChassisNo() != null) dbVehicle.setChassisNo(request.getChassisNo());
         if (request.getEngineNo() != null) dbVehicle.setEngineNo(request.getEngineNo());
         if (request.getRegisteredTo() != null) dbVehicle.setRegisteredTo(request.getRegisteredTo());
+        if (request.getMileage() != null) dbVehicle.setMileage(request.getMileage());
         if (request.getStatus() != null) dbVehicle.setStatus(request.getStatus());
 
         try {
@@ -175,7 +176,8 @@ public class VehicleServiceImpl implements VehicleService {
         data.put("chassisNo", vehicle.getChassisNo());
         data.put("registeredTo", vehicle.getRegisteredTo());
         data.put("tehsilId", String.valueOf(vehicle.getTehsil().getTehsilId()));
-        //data.put("mileage", String.valueOf(vehicle.getMileage()));   // AverageKmPerLiter
+        data.put("trackingId", String.valueOf(vehicle.getTrackingId()));
+        data.put("mileage", String.valueOf(vehicle.getMileage()));   // AverageKmPerLiter
         data.put("status", vehicle.getStatus().name());
 
         redisTemplate.opsForHash().putAll(redisKey, data);

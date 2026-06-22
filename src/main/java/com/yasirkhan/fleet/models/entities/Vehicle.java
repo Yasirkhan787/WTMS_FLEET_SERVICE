@@ -31,6 +31,9 @@ public class Vehicle {
     @Column(nullable = false, unique = true)
     private String chassisNo;
 
+    @Column(nullable = true)
+    private double mileage;
+
     @Column(nullable = false)
     private String registeredTo;
 

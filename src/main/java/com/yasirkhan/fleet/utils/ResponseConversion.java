@@ -20,6 +20,7 @@ public class ResponseConversion {
                 .chassisNo(savedVehicle.getChassisNo())
                 .engineNo(savedVehicle.getEngineNo())
                 .registeredTo(savedVehicle.getRegisteredTo())
+                .mileage(savedVehicle.getMileage())
                 .status(savedVehicle.getStatus());
 
         if (savedVehicle.getTehsil() != null) {
