@@ -15,11 +15,6 @@ public class RouteEventListener {
 
     private final RouteEventProducer producer;
 
-    /**
-     * Listens for RouteResponseEventDto events published by the RouteService.
-     * The phase = TransactionPhase.AFTER_COMMIT ensures Kafka is only called
-     * if the database transaction was successful.
-     */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleRouteResponseEvent(RouteResponseEventDto eventDto) {
         try {

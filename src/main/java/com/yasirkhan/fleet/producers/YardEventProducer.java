@@ -16,7 +16,7 @@ public class YardEventProducer {
     }
 
     // Send Yard Created/Updated Response Event
-    public void sendRouteResponseEvent(YardResponseEventDto eventDto) {
+    public void sendYardResponseEvent(YardResponseEventDto eventDto) {
         kafkaTemplate.send("yard-response-topic", eventDto).whenComplete((result, ex) -> {
             if (ex == null) {
                 log.info("SUCCESS: Yard Response {} event sent for Yard Id: {} (Partition: {}, Offset: {})",

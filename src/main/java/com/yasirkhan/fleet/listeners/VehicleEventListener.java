@@ -15,7 +15,6 @@ public class VehicleEventListener {
 
     private final VehicleEventProducer producer;
 
-    // This ensures Kafka message is sent ONLY AFTER DB commit is successful
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleVehicleResponseEvent(VehicleResponseEventDto eventDto) {
         try {

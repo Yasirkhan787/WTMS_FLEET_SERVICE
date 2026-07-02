@@ -17,6 +17,7 @@ import com.yasirkhan.fleet.repositories.YardRepository;
 import com.yasirkhan.fleet.requests.RouteRequest;
 import com.yasirkhan.fleet.requests.RouteUpdateRequest;
 import com.yasirkhan.fleet.responses.RouteResponse;
+import com.yasirkhan.fleet.responses.YardResponse;
 import com.yasirkhan.fleet.services.RouteService;
 import com.yasirkhan.fleet.utils.ResponseConversion;
 import com.yasirkhan.fleet.utils.SpatialUtils;
@@ -92,7 +93,9 @@ public class RouteServiceImpl implements RouteService {
 
             RouteResponse response = ResponseConversion.toRouteResponse(savedRoute);
 
-            publishRouteEvent(EventType.CREATE, EventStatus.SUCCESS, response);
+            YardResponse destYardResponse = ResponseConversion.toYardResponse(dest);
+
+            publishRouteEvent(EventType.CREATE, EventStatus.SUCCESS, response, destYardResponse);
 
             return response;
         } catch (DataAccessException e) {
@@ -121,8 +124,9 @@ public class RouteServiceImpl implements RouteService {
             dbRoute.setSourceYard(source);
         }
 
+        Yard dest = null;
         if (request.getDestinationYardId() != null) {
-            Yard dest = yardRepository.findById(request.getDestinationYardId())
+            dest = yardRepository.findById(request.getDestinationYardId())
                     .orElseThrow(() -> new ResourceNotFoundException("Dest Yard not found"));
             dbRoute.setDestinationYard(dest);
         }
@@ -146,7 +150,9 @@ public class RouteServiceImpl implements RouteService {
 
             RouteResponse response = ResponseConversion.toRouteResponse(updatedRoute);
 
-            publishRouteEvent(EventType.UPDATE, EventStatus.SUCCESS, response);
+            YardResponse destYardResponse = ResponseConversion.toYardResponse(dest);
+
+            publishRouteEvent(EventType.UPDATE, EventStatus.SUCCESS, response, destYardResponse);
         } catch (DataAccessException e) {
             throw new DataBaseException("Failed to update route: " + e.getMessage());
         }
@@ -161,6 +167,7 @@ public class RouteServiceImpl implements RouteService {
         Status newStatus = blockStatus ? Status.BLOCKED : Status.ACTIVE;
         dbRoute.setStatus(newStatus);
 
+        YardResponse dest = ResponseConversion.toYardResponse(dbRoute.getDestinationYard());
         try {
             Route updatedRoute = routeRepository.saveAndFlush(dbRoute);
 
@@ -168,7 +175,7 @@ public class RouteServiceImpl implements RouteService {
             syncRouteToRedis(updatedRoute);
 
             RouteResponse response = ResponseConversion.toRouteResponse(updatedRoute);
-            publishRouteEvent(EventType.UPDATE, EventStatus.SUCCESS, response);
+            publishRouteEvent(EventType.UPDATE, EventStatus.SUCCESS, response, dest);
         } catch (DataAccessException e) {
             throw new DataBaseException("Failed to block route: " + e.getMessage());
         }
@@ -242,11 +249,12 @@ public class RouteServiceImpl implements RouteService {
     }
 
     // --- Kafka Publisher Helper ---
-    private void publishRouteEvent(EventType type, EventStatus status, RouteResponse response) {
+    private void publishRouteEvent(EventType type, EventStatus status, RouteResponse response, YardResponse destination) {
         RouteResponseEventDto eventDto = RouteResponseEventDto.builder()
                 .type(type)
                 .eventTypeStatus(status)
                 .routeData(response)
+                .yardData(destination)
                 .build();
         eventPublisher.publishEvent(eventDto);
     }

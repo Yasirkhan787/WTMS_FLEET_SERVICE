@@ -28,7 +28,6 @@ public class UserEventConsumer {
     )
     public void handleUserResponse(UserResponseEventDto event) {
 
-        // Add this line immediately
         log.info("EVENT RECEIVED: Status={}, User={}", event.getEventTypeStatus(), event.getUserId());
 
         if (EventStatus.SUCCESS.equals(event.getEventTypeStatus())) {
@@ -49,7 +48,7 @@ public class UserEventConsumer {
             } else {
                 map.put("yardId", "");
             }
-            log.info("Saving Data TO Redis");
+
             String redisKey = "wtms:user:" + userId;
             redisTemplate.opsForHash().putAll(redisKey, map);
         }

@@ -16,7 +16,7 @@ public class DailyGoalEventProducer {
     }
 
     // Send Yard Created/Updated Response Event
-    public void sendRouteResponseEvent(DailyGoalResponseEventDto eventDto) {
+    public void sendDailyGoalResponseEvent(DailyGoalResponseEventDto eventDto) {
         kafkaTemplate.send("daily-goal-response-topic", eventDto).whenComplete((result, ex) -> {
             if (ex == null) {
                 log.info("SUCCESS: Daily Goal Response {} event sent for Goal Id: {} (Partition: {}, Offset: {})",

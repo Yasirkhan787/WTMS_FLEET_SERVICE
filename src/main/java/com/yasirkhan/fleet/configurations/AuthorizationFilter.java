@@ -9,7 +9,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-//import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,14 +26,11 @@ public class AuthorizationFilter extends OncePerRequestFilter {
     private String GATEWAY_SECRET = "";
 
     private final DownstreamJwtService jwtService;
-    //private final StringRedisTemplate redisTemplate;
     private final HandlerExceptionResolver exceptionResolver;
 
     public AuthorizationFilter(DownstreamJwtService jwtService,
-                               //StringRedisTemplate redisTemplate,
                                @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver) {
         this.jwtService = jwtService;
-        //this.redisTemplate = redisTemplate;
         this.exceptionResolver = exceptionResolver;
     }
 
@@ -68,26 +64,13 @@ public class AuthorizationFilter extends OncePerRequestFilter {
             String username = jwtService.extractUsername(token);
             String role = jwtService.extractRole(token);
             String userId = jwtService.extractUserId(token);
-            Integer tokenVersion = jwtService.extractTokenVersion(token);
-
-            request.setAttribute("userId", userId);
-            request.setAttribute("username", username);
-            request.setAttribute("role", role);
-
-            // 4Redis Revocation Check
-            String redisKey = "user:" + userId + ":tokenVersion";
-            // String currentRedisVersion = redisTemplate.opsForValue().get(redisKey);
-
-            /* if (currentRedisVersion == null || !currentRedisVersion.equals(String.valueOf(tokenVersion))) {
-                throw new UnauthorizedException("Session expired or revoked. Please log in again.");
-            }
-            */
 
             // Authenticate in Spring Context
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 String authorityRole = role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase();
                 List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(authorityRole));
 
+                // Attach your robust custom principal
                 UserPrincipal customPrincipal = new UserPrincipal(userId, username, role);
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(customPrincipal, null, authorities);
@@ -98,7 +81,6 @@ public class AuthorizationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
-            // Bridge any JWT or Auth errors to your GlobalExceptionHandler!
             exceptionResolver.resolveException(request, response, null, e);
         }
     }
