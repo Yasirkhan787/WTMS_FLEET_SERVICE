@@ -39,11 +39,11 @@ public class UserResponseEventDto {
             if (userData.get("tehsilId") != null) {
                 this.tehsilId = UUID.fromString((String) userData.get("tehsilId"));
             } else {
-                this.tehsilId = null; // Explicitly handle the null case
+                this.tehsilId = null;
             }
 
             if (userData.get("yardId") != null) {
-                this.tehsilId = UUID.fromString((String) userData.get("yardId"));
+                this.yardId = UUID.fromString((String) userData.get("yardId"));
             } else {
                 this.yardId = null;
             }
