@@ -20,5 +20,6 @@ public class RouteResponseEventDto {
     private EventType type;
     private EventStatus eventTypeStatus;
     private RouteResponse routeData;
-    private YardResponse yardData;
+    private YardResponse sourceYardData;
+    private YardResponse destinationYardData;
 }

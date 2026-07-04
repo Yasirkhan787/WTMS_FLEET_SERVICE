@@ -24,10 +24,4 @@ public class RouteResponse {
     private String estimatedTime;
     private String status;
 
-    /*
-    private String origin;
-    private CoordinateDto originCoords;
-    private String destination;
-    private CoordinateDto destinationCoords;
-     */
 }
